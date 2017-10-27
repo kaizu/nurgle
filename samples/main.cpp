@@ -3,10 +3,13 @@
 #include <nurgle/csv.hpp>
 #include <nurgle/event_scheduler.hpp>
 #include <nurgle/world.hpp>
+#include <nurgle/logger.hpp>
+
 
 int main(int argc, char* argv[])
 {
     using namespace nurgle;
+    LOG_LEVEL(Logger::L_INFO);
 
     std::string const sep("/");
     std::string const pathto(argc > 0 ? argv[1] : ".");
@@ -15,7 +18,7 @@ int main(int argc, char* argv[])
 
     for (auto elem : utils::csv<std::string, double>::read(pathto + sep + "compounds.csv"))
     {
-        std::cout << std::get<0>(elem) << " : " << std::get<1>(elem) << std::endl;
+        LOG_DEBUG("%s : %e", std::get<0>(elem), std::get<1>(elem));
         w.pool.update(std::get<0>(elem), std::get<1>(elem));
     }
 
@@ -23,7 +26,7 @@ int main(int argc, char* argv[])
         = utils::csv<std::string, std::string, double>::read(pathto + sep + "metabolism.csv");
     for (auto elem : metabolism)
     {
-        std::cout << std::get<0>(elem) << " : " << std::get<1>(elem) << " : " << std::get<2>(elem) << std::endl;
+        LOG_DEBUG("%s : %s : %e", std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
     }
 
     EventScheduler<World> scheduler;
