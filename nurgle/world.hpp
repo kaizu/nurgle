@@ -1,6 +1,7 @@
 #pragma once
 
-#include "defs.hpp"
+#include <nurgle/defs.hpp>
+#include <nurgle/pool.hpp>
 
 namespace nurgle
 {
@@ -8,6 +9,7 @@ namespace nurgle
 struct World
 {
     double t = 0.0;
+    Pool pool;
     rng_type rng;
 
     bool paranoiac = false;
