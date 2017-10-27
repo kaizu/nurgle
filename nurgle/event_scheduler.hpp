@@ -17,6 +17,7 @@ template <typename _Tworld>
 struct Event
 {
     typedef _Tworld world_type;
+    typedef std::string token_type;
 
     unsigned long long num_steps;
 
@@ -31,17 +32,12 @@ struct Event
         ; // do nothing
     }
 
-    virtual std::vector<std::string> fire(world_type& w) = 0;
+    virtual std::vector<token_type> fire(world_type& w) = 0;
 
-    virtual std::vector<std::string> const accessors() const
+    virtual std::vector<token_type> const accessors() const
     {
         return {};
     }
-
-    // virtual bool is_mutated(std::string const type) const
-    // {
-    //     return false;
-    // }
 
     virtual double draw_next_time(world_type& w)
     {
@@ -85,8 +81,9 @@ struct FixedIntervalCallbackEvent: public Event<_Tworld>
 {
     typedef Event<_Tworld> base_type;
     typedef typename base_type::world_type world_type;
+    typedef typename base_type::token_type token_type;
 
-    typedef std::function<std::vector<std::string>(world_type&)> operator_type;
+    typedef std::function<std::vector<token_type>(world_type&)> operator_type;
     std::string name;
     double next_time, dt;
     operator_type op;
@@ -102,7 +99,7 @@ struct FixedIntervalCallbackEvent: public Event<_Tworld>
         ;
     }
 
-    std::vector<std::string> fire(world_type& w) override
+    std::vector<token_type> fire(world_type& w) override
     {
         auto retval = op(w);
         next_time += dt;
@@ -165,11 +162,12 @@ struct EventScheduler
 {
     typedef Event<_Tworld> event_type;
     typedef typename event_type::world_type world_type;
+    typedef typename event_type::token_type token_type;
 
     std::vector<std::unique_ptr<event_type>> events;
     std::vector<double> next_times;
 
-    std::unordered_map<std::string, std::vector<size_t>> dependencies_;
+    std::unordered_map<token_type, std::vector<size_t>> dependencies_;
 
     size_t num_events() const
     {
@@ -234,7 +232,7 @@ struct EventScheduler
         {
             sett(w, *it);
             size_t pos = std::distance(next_times.begin(), it);
-            std::vector<std::string> const mutators = events[pos]->fire(w);
+            std::vector<token_type> const mutators = events[pos]->fire(w);
             events[pos]->num_steps++;
             update(w, pos, mutators);
             return true;
@@ -255,12 +253,12 @@ struct EventScheduler
         }
     }
 
-    void update(world_type& w, size_t const pos, std::vector<std::string> const& mutators)
+    void update(world_type& w, size_t const pos, std::vector<token_type> const& mutators)
     {
         events[pos]->interrupt(w);
         next_times[pos] = events[pos]->draw_next_time(w);
 
-        for (std::string const& type : mutators)
+        for (token_type const& type : mutators)
         {
             // std::cout << "mutataor = '" << type << "'" << std::endl;
             auto it = dependencies_.find(type);
