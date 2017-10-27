@@ -6,7 +6,7 @@
 namespace nurgle
 {
 
-double const infinity = std::numeric_limits<double>::infinity();
+double const Inf = std::numeric_limits<double>::infinity();
 typedef std::mt19937 rng_type;
 
-} // ursuppe
+} // nurgle

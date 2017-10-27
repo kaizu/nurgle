@@ -1,6 +1,8 @@
 #include <iostream>
 
 #include <nurgle/csv.hpp>
+#include <nurgle/event_scheduler.hpp>
+#include <nurgle/world.hpp>
 
 int main(int argc, char* argv[])
 {
@@ -24,6 +26,16 @@ int main(int argc, char* argv[])
     {
         std::cout << std::get<0>(elem) << " : " << std::get<1>(elem) << " : " << std::get<2>(elem) << std::endl;
     }
+
+    EventScheduler<World> scheduler;
+    scheduler.insert(generate_fixed_interval_callback_event<World>(
+        "TimerEvent", 10.0, [&](World& w) -> std::vector<std::string> {
+            std::cout << "The current time is " << w.t << "." << std::endl;
+            return {};
+            }));
+
+    World w;
+    scheduler.run(w, 100.0);
 
     return 0;
 }
