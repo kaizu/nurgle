@@ -1,12 +1,13 @@
 #pragma once
 
-#include <assert.h>
 #include <vector>
 #include <tuple>
 #include <regex>
 #include <string>
 #include <fstream>
 #include <sstream>
+
+#include <nurgle/defs.hpp>
 
 namespace nurgle
 {
