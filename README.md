@@ -10,5 +10,5 @@ $ cd build
 $ cmake -DCMAKE_INSTALL_PREFIX=./local -DCMAKE_CXX_COMPILER=clang++ ..
 $ make
 $ make install
-$ ./local/bin/main
+$ ./local/bin/main ./local/share/nurgle
 ```

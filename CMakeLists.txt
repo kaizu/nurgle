@@ -17,6 +17,8 @@ add_custom_command(
 add_custom_target(
     outputs ALL DEPENDS ${OUTPUTS})
 
+install(FILES ${OUTPUTS} DESTINATION share/nurgle)
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++ -O3")
 include_directories(.)
 
