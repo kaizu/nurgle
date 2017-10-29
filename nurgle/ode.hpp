@@ -16,52 +16,6 @@ namespace ode
 
 namespace odeint = boost::numeric::odeint;
 
-struct ChemicalReaction
-{
-    std::vector<std::tuple<std::string, double>> left;
-    std::vector<std::tuple<std::string, double>> right;
-    std::vector<std::string> enzymes;
-    bool reversible;
-    std::string name;
-};
-
-std::vector<std::tuple<std::string, double>> split_refs(std::string const& s, std::regex const& pattern)
-{
-    return utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(s), ';');
-};
-
-std::vector<ChemicalReaction>
-    read_chemical_reactions(std::string const filename)
-{
-    typedef utils::csv<std::string, std::string, std::string, bool, std::string, std::string, std::string, std::string> csv_type;
-    typedef ChemicalReaction ret_type;
-    return csv_type::read<ret_type>(
-        filename,
-        [](csv_type::row_type&& x) {
-            ret_type reaction;
-            reaction.reversible = std::get<3>(x);
-            reaction.name = std::get<0>(x);
-            reaction.left = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<1>(x)), ';');
-            reaction.right = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<2>(x)), ';');
-            reaction.enzymes = utils::split(std::get<4>(x), ';', true);
-            return reaction;
-            });
-}
-
-template<class InputIt, class T, class UnaryOperation>
-inline T multiply_accumulate(InputIt first, InputIt last, T init, UnaryOperation op)
-{
-    return std::accumulate(first, last, init, [&op](T const& a, T const& b) -> T {
-        return std::multiplies<T>()(a, op(b));
-        });
-}
-
-template<class InputIt, class T>
-inline T multiply_accumulate(InputIt first, InputIt last, T init)
-{
-    return std::accumulate(first, last, init, std::multiplies<T>());
-}
-
 double evaluate_reaction(
     std::vector<double> const& left,
     std::vector<double> const& right,
@@ -72,21 +26,21 @@ double evaluate_reaction(
     // // {
     // //     return 0.0;
     // // }
-    // if (multiply_accumulate(enzymes.begin(), enzymes.end(), 1.0) == 0.0)
+    // if (utils::product(enzymes.begin(), enzymes.end(), 1.0) == 0.0)
     // {
     //     return 0.0;
     // }
 
     // double const k = pow(0.1, left.size());
-    // double const flux = multiply_accumulate(left.begin(), left.end(), k);
+    // double const flux = utils::product(left.begin(), left.end(), k);
     // if (!reversible)
     // {
     //     return flux;
     // }
-    // return flux - multiply_accumulate(right.begin(), right.end(), k);
+    // return flux - utils::product(right.begin(), right.end(), k);
 
     double const k = 1.0;
-    double const flux = multiply_accumulate(
+    double const flux = utils::product(
         left.begin(), left.end(), k, [](double const& conc) {
             double const Km = 1.0;
             return conc / (Km + conc);
@@ -95,7 +49,7 @@ double evaluate_reaction(
     {
         return flux;
     }
-    return flux - multiply_accumulate(
+    return flux - utils::product(
         right.begin(), right.end(), k, [](double const& conc) {
             double const Km = 1.0;
             return conc / (Km + conc);

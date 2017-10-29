@@ -11,11 +11,43 @@
 namespace nurgle
 {
 
+struct ChemicalReaction
+{
+    std::vector<std::tuple<std::string, double>> left;
+    std::vector<std::tuple<std::string, double>> right;
+    std::vector<std::string> enzymes;
+    bool reversible;
+    std::string name;
+};
+
+std::vector<std::tuple<std::string, double>> split_refs(std::string const& s, std::regex const& pattern)
+{
+    return utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(s), ';');
+};
+
+std::vector<ChemicalReaction>
+    read_chemical_reactions(std::string const filename)
+{
+    typedef utils::csv<std::string, std::string, std::string, bool, std::string, std::string, std::string, std::string> csv_type;
+    typedef ChemicalReaction ret_type;
+    return csv_type::read<ret_type>(
+        filename,
+        [](csv_type::row_type&& x) {
+            ret_type reaction;
+            reaction.reversible = std::get<3>(x);
+            reaction.name = std::get<0>(x);
+            reaction.left = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<1>(x)), ';');
+            reaction.right = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<2>(x)), ';');
+            reaction.enzymes = utils::split(std::get<4>(x), ';', true);
+            return reaction;
+            });
+}
+
 struct EnzymaticChemicalReactionEvent: public Event<World>
 {
     typedef Event<World> base_type;
     typedef typename base_type::world_type world_type;
-    typedef ode::ChemicalReaction reaction_type;
+    typedef ChemicalReaction reaction_type;
     typedef ode::ODESystem system_type;
     typedef system_type::pool_type pool_type;
 
