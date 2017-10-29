@@ -59,6 +59,14 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         ;
     }
 
+    EnzymaticChemicalReactionEvent(
+        double const dt,
+        std::string const& filename)
+        : dt(dt), t(0.0), reactions(read_chemical_reactions(filename)), system()
+    {
+        ;
+    }
+
     virtual ~EnzymaticChemicalReactionEvent()
     {
         ;

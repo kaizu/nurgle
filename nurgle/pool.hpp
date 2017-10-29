@@ -1,6 +1,8 @@
 #pragma once
 
-#include "defs.hpp"
+#include <ostream>
+
+#include <nurgle/defs.hpp>
 
 namespace nurgle
 {
@@ -75,5 +77,22 @@ struct Pool
         return is_constant[std::distance(variables.begin(), it)];
     }
 };
+
+void read_pool(std::string const& filename, Pool& pool)
+{
+    for (auto const& elem : utils::csv<std::string, double, bool>::read(filename))
+    {
+        // LOG_DEBUG("%1% : %2% : %3%", std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
+        pool.update(std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
+    }
+}
+
+void dump_pool(std::ostream& out, Pool const& pool)
+{
+    for (size_t i = 0; i < pool.size(); ++i)
+    {
+        out << pool.variables[i] << "," << pool.values[i] << std::endl;
+    }
+}
 
 } // nurgle
