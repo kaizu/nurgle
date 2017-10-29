@@ -1,5 +1,9 @@
 # Nurgle
 
+> "Buboes, phlegm, blood and guts! Boils, bogeys, rot and pus! Blisters, fevers, weeping sores! From your wounds the fester pours."
+> 
+> -- <cite>The Chant of Nurgle</cite>
+
 ## How to
 
 Packages, `clang-3.8` and `libc++-dev`, and Boost headers are required to build this.
