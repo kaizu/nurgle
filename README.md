@@ -2,7 +2,9 @@
 
 ## How to
 
-Put EcoCyc data files into `inputs` directory.
+Packages, `clang-3.8` and `libc++-dev`, and Boost headers are required to build this.
+
+Put EcoCyc data files into `inputs/21.1` directory, and build as follows.
 
 ```
 $ mkdir build
@@ -13,9 +15,7 @@ $ make install
 $ ./local/bin/main ./local/share/nurgle
 ```
 
-## Installation
-
-Packages, `clang-3.8` and `libc++-dev`, are required to build this.
+# Troubleshooting
 
 When facing the error like:
 
@@ -26,4 +26,4 @@ When facing the error like:
          1 error generated.
 ```
 
-install `libc++abi-dev` and do as follows: `sudo cp /usr/include/libcxxabi/__cxxabi_config.h /usr/include/c++/v1/.`.
+install `libc++abi-dev` and try: `sudo cp /usr/include/libcxxabi/__cxxabi_config.h /usr/include/c++/v1/.`.
