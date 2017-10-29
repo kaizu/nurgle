@@ -88,25 +88,27 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
                 continue
             assert ';' not in reaction['id'] and ':' not in reaction['id']
             assert all(';' not in name and ':' not in name for name in reaction['metabolites'])
-            metabolites = ';'.join('{}:{}'.format(name, coef) for name, coef in reaction['metabolites'].items())
             flux = reaction['flux']
             # reversible = (reaction.get('lower_bound', 0.0) < 0.0)
 
-            reactants = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** y[1])) if y[1] > 0 else x, reaction['metabolites'].items(), 1.0)
-            products = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** -y[1])) if y[1] < 0 else x, reaction['metabolites'].items(), 1.0)
-            Vfmax, Vrmax = 0.0, 0.0
+            reactants = ';'.join('{}:{}'.format(name, -coef) for name, coef in reaction['metabolites'].items() if coef < 0)
+            products = ';'.join('{}:{}'.format(name, coef) for name, coef in reaction['metabolites'].items() if coef > 0)
+
+            vf = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** -y[1])) if y[1] < 0 else x, reaction['metabolites'].items(), 1.0)
+            vr = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** y[1])) if y[1] > 0 else x, reaction['metabolites'].items(), 1.0)
+            vfmax, vrmax = 0.0, 0.0
 
             if flux > 0.0:
-                assert reactants > 0.0
-                Vfmax = flux / reactants
+                assert vf > 0.0
+                vfmax = flux / vf
             elif flux < 0.0:
-                assert products > 0.0
-                Vrmax = -flux / products
+                assert vr > 0.0
+                vrmax = -flux / vr
             else:
                 # flux == 0.0
                 pass  # do nothing
 
-            writer.writerow((reaction['id'], metabolites, Vfmax, Vrmax))
+            writer.writerow((reaction['id'], reactants, products, vfmax, vrmax))
 
 
 if __name__ == "__main__":

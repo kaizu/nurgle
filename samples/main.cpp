@@ -26,11 +26,8 @@ int main(int argc, char* argv[])
         w.pool.update(std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
     }
 
-    auto const metabolism = utils::csv<std::string, std::string, double, double>::read(pathto + sep + "metabolism.csv");
-    for (auto const& elem : metabolism)
-    {
-        LOG_DEBUG("%1% : %2% : %3%", std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
-    }
+    auto const metabolism = read_chemical_reactions(pathto + sep + "metabolism.csv");
+    LOG_INFO("%1% reactions were read from [%2%].", metabolism.size(), pathto + sep + "metabolism.csv");
 
     EventScheduler<World> scheduler;
     scheduler.insert(generate_fixed_interval_callback_event<World>(

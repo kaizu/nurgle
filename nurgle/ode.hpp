@@ -349,7 +349,7 @@ struct ODESystem
     }
 
     template <typename Treaction_>
-    void generate_reactions(pool_type& pool, std::vector<Treaction_> const& org)
+    void generate_reactions(std::vector<Treaction_> const& org, pool_type& pool)
     {
         std::unordered_map<id_type, state_type::size_type> index_map;
         state_type::size_type idx = 0;
@@ -365,12 +365,12 @@ struct ODESystem
         for (Treaction_ const& r0 : org)
         {
             reaction_type r;
-            r.reversible = r0.reversible;
+            // r.reversible = r0.reversible;
             r.name = r0.name;
 
             r.reactants.reserve(r0.left.size());
             r.products.reserve(r0.right.size());
-            r.enzymes.reserve(r0.enzymes.size());
+            // r.enzymes.reserve(r0.enzymes.size());
 
             for (auto const& cmp : r0.left)
             {
@@ -404,26 +404,26 @@ struct ODESystem
                 r.product_coefficients.push_back(std::get<1>(cmp));
             }
 
-            for (auto const& name : r0.enzymes)
-            {
-                auto const& it = index_map.find(name);
-                if (it != index_map.end())
-                {
-                    r.enzymes.push_back(index_map[name]);
-                }
-                else
-                {
-                    size_t i = pool.update(name);
-                    r.enzymes.push_back(i);
-                    index_map[name] = i;
-                }
-            }
+            // for (auto const& name : r0.enzymes)
+            // {
+            //     auto const& it = index_map.find(name);
+            //     if (it != index_map.end())
+            //     {
+            //         r.enzymes.push_back(index_map[name]);
+            //     }
+            //     else
+            //     {
+            //         size_t i = pool.update(name);
+            //         r.enzymes.push_back(i);
+            //         index_map[name] = i;
+            //     }
+            // }
 
             reactions.push_back(r);
         }
     }
 
-    void set_state(pool_type const& pool)
+    void synchronize(pool_type const& pool)
     {
         state_init.resize(pool.size());
 
@@ -438,7 +438,7 @@ struct ODESystem
         std::vector<double> timelog;
         std::vector<state_type> statelog;
 
-        // set_state(pool);
+        // synchronize(pool);
 
         size_t steps;
 

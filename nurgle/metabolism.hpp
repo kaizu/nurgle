@@ -13,32 +13,27 @@ namespace nurgle
 
 struct ChemicalReaction
 {
+    std::string name;
     std::vector<std::tuple<std::string, double>> left;
     std::vector<std::tuple<std::string, double>> right;
-    std::vector<std::string> enzymes;
-    bool reversible;
-    std::string name;
-};
-
-std::vector<std::tuple<std::string, double>> split_refs(std::string const& s, std::regex const& pattern)
-{
-    return utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(s), ';');
+    double forward;
+    double reverse;
 };
 
 std::vector<ChemicalReaction>
     read_chemical_reactions(std::string const filename)
 {
-    typedef utils::csv<std::string, std::string, std::string, bool, std::string, std::string, std::string, std::string> csv_type;
+    typedef utils::csv<std::string, std::string, std::string, std::string, std::string> csv_type;
     typedef ChemicalReaction ret_type;
     return csv_type::read<ret_type>(
         filename,
         [](csv_type::row_type&& x) {
             ret_type reaction;
-            reaction.reversible = std::get<3>(x);
             reaction.name = std::get<0>(x);
             reaction.left = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<1>(x)), ';');
             reaction.right = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<2>(x)), ';');
-            reaction.enzymes = utils::split(std::get<4>(x), ';', true);
+            reaction.forward = std::stod(std::get<3>(x));
+            reaction.reverse = std::stod(std::get<4>(x));
             return reaction;
             });
 }
@@ -51,30 +46,6 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
     typedef ode::ODESystem system_type;
     typedef system_type::pool_type pool_type;
 
-    static inline void dump_populations(pool_type const& pool, std::vector<Pool::id_type> const& names)
-    {
-        for (auto const& name : names)
-        {
-            LOG_ERROR("%1% => %2% %3%", name, pool.get(name), (pool.check_constant(name) ? "(const)" : ""));
-        }
-    }
-
-    static inline void dump_populations(pool_type const& pool)
-    {
-        std::vector<Pool::id_type>::const_iterator it1(pool.variables.begin());
-        std::vector<Pool::value_type>::const_iterator it2(pool.values.begin());
-        Pool::bool_container_type::const_iterator it3(pool.is_constant.begin());
-
-        for (; it1 != pool.variables.end(); ++it1, ++it2, ++it3)
-        {
-            Pool::value_type const& value = (*it2);
-            if (value != 0.0 && (*it1).find("@") != std::string::npos)
-            {
-                LOG_ERROR("%1% => %2% %3%", (*it1), value, (*it3 ? "(const)" : ""));
-            }
-        }
-    }
-
     double dt;
     double t;
     std::vector<reaction_type> reactions;
@@ -85,7 +56,7 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         std::vector<reaction_type> const& reactions)
         : dt(dt), t(0.0), reactions(reactions), system()
     {
-        // system.generate_reactions(reactions);
+        ;
     }
 
     virtual ~EnzymaticChemicalReactionEvent()
@@ -93,7 +64,7 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         ;
     }
 
-    void set_state(world_type& w)
+    void synchronize(world_type& w)
     {
         // for (auto const& reaction : reactions)
         // {
@@ -102,24 +73,19 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         //         w.pool.update(enzyme, w.entities.count(enzyme));
         //     }
         // }
-        system.set_state(w.pool);
+        system.synchronize(w.pool);
     }
 
     double draw_next_time(world_type& w) override
     {
         if (system.reactions.size() == 0)
         {
-            system.generate_reactions(w.pool, reactions);
+            system.generate_reactions(reactions, w.pool);
             assert(system.reactions.size() > 0);
-            set_state(w);
+            synchronize(w);
         }
         return t + dt;
     }
-
-    // bool is_mutated(std::string const type) const override
-    // {
-    //     return false;
-    // }
 
     void interrupt(world_type& w) override
     {
@@ -148,47 +114,39 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         }
 
         // dump_populations(w.pool);
-
-        // std::string const filename = "metabolites.csv";
-        // std::ofstream ofs(filename, std::ios::app);
-        // assert(ofs.is_open());
-        // ofs << t
-        //     << "," << system.pool.get("GLC-6-P@CCO-PERI-BAC")
-        //     << "," << system.pool.get("GLC-6-P@CCO-CYTOSOL")
-        //     << "," << system.pool.get("FRUCTOSE-6P@CCO-CYTOSOL")
-        //     << "," << system.pool.get("FRUCTOSE-16-DIPHOSPHATE@CCO-CYTOSOL")
-        //     << "," << system.pool.get("DIHYDROXY-ACETONE-PHOSPHATE@CCO-CYTOSOL")
-        //     << "," << system.pool.get("GAP@CCO-CYTOSOL")
-        //     << "," << system.pool.get("DPG@CCO-CYTOSOL")
-        //     << "," << system.pool.get("G3P@CCO-CYTOSOL")
-        //     << "," << system.pool.get("2-PG@CCO-CYTOSOL")
-        //     << "," << system.pool.get("PHOSPHO-ENOL-PYRUVATE@CCO-CYTOSOL")
-        //     << "," << system.pool.get("PYRUVATE@CCO-CYTOSOL")
-        //     << "," << system.pool.get("PYRUVATE@CCO-PERI-BAC")
-        //     << std::endl;
-
         system.dump_fluxes("fluxes.csv", w.pool, t);
         system.dump_variables("compounds.csv", w.pool, t);
 
         system.integrate(w.pool, t, dt_);
         t += dt_;
-        set_state(w);
-
-        // {
-        //     std::ofstream ofs("timecourse.csv", std::ios::out | std::ios::app);
-        //     assert(ofs.is_open());
-        //     ofs << t << ",";
-        //     ofs << w.pool.get("APS@CCO-CYTOSOL") << ",";
-        //     ofs << w.pool.get("PAPS@CCO-CYTOSOL") << ",";
-        //     ofs << w.pool.get("SO3@CCO-CYTOSOL") << ",";
-        //     ofs << w.entities.count("PAPSSULFOTRANS-CPLX") << ",";
-        //     ofs << w.entities.count("RED-THIOREDOXIN-MONOMER") << ",";
-        //     ofs << w.entities.count("OX-THIOREDOXIN-MONOMER") << ",";
-        //     ofs << w.entities.count("ADENYLYLSULFKIN-CPLX") << std::endl;
-        // }
+        synchronize(w);
 
         return {};
     }
+
+    // static inline void dump_populations(pool_type const& pool, std::vector<Pool::id_type> const& names)
+    // {
+    //     for (auto const& name : names)
+    //     {
+    //         LOG_ERROR("%1% => %2% %3%", name, pool.get(name), (pool.check_constant(name) ? "(const)" : ""));
+    //     }
+    // }
+
+    // static inline void dump_populations(pool_type const& pool)
+    // {
+    //     std::vector<Pool::id_type>::const_iterator it1(pool.variables.begin());
+    //     std::vector<Pool::value_type>::const_iterator it2(pool.values.begin());
+    //     Pool::bool_container_type::const_iterator it3(pool.is_constant.begin());
+
+    //     for (; it1 != pool.variables.end(); ++it1, ++it2, ++it3)
+    //     {
+    //         Pool::value_type const& value = (*it2);
+    //         if (value != 0.0 && (*it1).find("@") != std::string::npos)
+    //         {
+    //             LOG_ERROR("%1% => %2% %3%", (*it1), value, (*it3 ? "(const)" : ""));
+    //         }
+    //     }
+    // }
 };
 
 template <typename... Trest_>
