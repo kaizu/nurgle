@@ -5,6 +5,8 @@
 #include <nurgle/world.hpp>
 #include <nurgle/logger.hpp>
 
+#include <nurgle/metabolism.hpp>
+
 
 int main(int argc, char* argv[])
 {
