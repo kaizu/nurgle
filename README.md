@@ -15,7 +15,7 @@ $ make install
 $ ./local/bin/main ./local/share/nurgle
 ```
 
-# Troubleshooting
+## Troubleshooting
 
 When facing the error like:
 
