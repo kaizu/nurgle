@@ -42,7 +42,7 @@ def solve_fba_using_cobra(data):
 
     return data
 
-def generate_ecocyc_fba(ECOCYC_VERSION="21.1"):
+def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
     log_.info('generate_ecocyc_fba(ECOCYC_VERSION="{}")'.format(ECOCYC_VERSION))
 
     filename = os.path.join(INPUTS_PATH, ECOCYC_VERSION, 'data/fba/fba-examples/ecocyc-21.0-gem-cs-glucose-tea-none.json')
@@ -56,6 +56,8 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1"):
 
     compounds = []
     for reaction in data['reactions']:
+        if not showall and reaction['flux'] == 0.0:
+            continue
         compounds.extend(reaction['metabolites'])
     default = 1.0
     compounds = dict((name, default) for name in set(compounds))
@@ -74,25 +76,37 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1"):
         log_.info('output a file [{}]'.format(filename))
         writer = csv.writer(fout, lineterminator='\n')
         for name, val in compounds.items():
-            writer.writerow((name, val))
+            is_constant = 0
+            writer.writerow((name, val, is_constant))
 
     filename = os.path.join(OUTPUTS_PATH, 'metabolism.csv')
     with open(filename, 'w') as fout:
         log_.info('output a file [{}]'.format(filename))
         writer = csv.writer(fout, lineterminator='\n')
         for reaction in data['reactions']:
+            if not showall and reaction['flux'] == 0.0:
+                continue
             assert ';' not in reaction['id'] and ':' not in reaction['id']
             assert all(';' not in name and ':' not in name for name in reaction['metabolites'])
             metabolites = ';'.join('{}:{}'.format(name, coef) for name, coef in reaction['metabolites'].items())
-            denom = functools.reduce(lambda x, y: x * (compounds[y[0]] ** y[1]), reaction['metabolites'].items(), 1.0)
-            if denom != 0.0:
-                writer.writerow((reaction['id'], metabolites, reaction['flux'] / denom))
+            flux = reaction['flux']
+            # reversible = (reaction.get('lower_bound', 0.0) < 0.0)
+
+            reactants = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** y[1])) if y[1] > 0 else x, reaction['metabolites'].items(), 1.0)
+            products = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** -y[1])) if y[1] < 0 else x, reaction['metabolites'].items(), 1.0)
+            Vfmax, Vrmax = 0.0, 0.0
+
+            if flux > 0.0:
+                assert reactants > 0.0
+                Vfmax = flux / reactants
+            elif flux < 0.0:
+                assert products > 0.0
+                Vrmax = -flux / products
             else:
-                if reaction['flux'] == 0.0:
-                    log_.warning('a flux of reaction [{}] is 0. vmax is 1.0 as its default'.format(reaction['id']))
-                else:
-                    log_.error('a flux of reaction [{}] is 0, but the one at equilibrium is non-zero [{}]'.format(reaction['id'], reaction['flux']))
-                writer.writerow((reaction['id'], metabolites, 1.0))
+                # flux == 0.0
+                pass  # do nothing
+
+            writer.writerow((reaction['id'], metabolites, Vfmax, Vrmax))
 
 
 if __name__ == "__main__":

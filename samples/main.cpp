@@ -18,14 +18,13 @@ int main(int argc, char* argv[])
     unsigned int const seed = 0;
     w.rng.seed(seed);
 
-    for (auto const& elem : utils::csv<std::string, double>::read(pathto + sep + "compounds.csv"))
+    for (auto const& elem : utils::csv<std::string, double, bool>::read(pathto + sep + "compounds.csv"))
     {
-        LOG_DEBUG("%1% : %2%", std::get<0>(elem), std::get<1>(elem));
-        w.pool.update(std::get<0>(elem), std::get<1>(elem));
+        LOG_DEBUG("%1% : %2% : %3%", std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
+        w.pool.update(std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
     }
 
-    std::vector<std::tuple<std::string, std::string, double>> const metabolism
-        = utils::csv<std::string, std::string, double>::read(pathto + sep + "metabolism.csv");
+    auto const metabolism = utils::csv<std::string, std::string, double, double>::read(pathto + sep + "metabolism.csv");
     for (auto const& elem : metabolism)
     {
         LOG_DEBUG("%1% : %2% : %3%", std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
