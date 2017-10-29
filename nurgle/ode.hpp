@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cmath>
+#include <ostream>
+
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/odeint.hpp>
@@ -16,44 +19,33 @@ namespace ode
 
 namespace odeint = boost::numeric::odeint;
 
+template <typename Treaction_>
 double evaluate_reaction(
-    std::vector<double> const& left,
-    std::vector<double> const& right,
+    std::vector<double> const& reactants,
+    std::vector<double> const& products,
     std::vector<double> const& enzymes,
-    double const volume, double const t, bool const reversible)
+    double const volume, double const t,
+    Treaction_ const& reaction)
 {
-    // // if (enzymes.size() == 0)
-    // // {
-    // //     return 0.0;
-    // // }
-    // if (utils::product(enzymes.begin(), enzymes.end(), 1.0) == 0.0)
-    // {
-    //     return 0.0;
-    // }
-
-    // double const k = pow(0.1, left.size());
-    // double const flux = utils::product(left.begin(), left.end(), k);
-    // if (!reversible)
-    // {
-    //     return flux;
-    // }
-    // return flux - utils::product(right.begin(), right.end(), k);
-
-    double const k = 1.0;
-    double const flux = utils::product(
-        left.begin(), left.end(), k, [](double const& conc) {
-            double const Km = 1.0;
-            return conc / (Km + conc);
-            });
-    if (!reversible)
+    double forward = reaction.forward;
+    if (forward > 0.0)
     {
-        return flux;
+        for (size_t i = 0; i < reactants.size(); ++i)
+        {
+            forward *= std::pow(reactants[i], reaction.reactant_coefficients[i]);
+        }
     }
-    return flux - utils::product(
-        right.begin(), right.end(), k, [](double const& conc) {
-            double const Km = 1.0;
-            return conc / (Km + conc);
-            });
+
+    double reverse = reaction.reverse;
+    if (reverse > 0.0)
+    {
+        for (size_t i = 0; i < products.size(); ++i)
+        {
+            reverse *= std::pow(products[i], reaction.product_coefficients[i]);
+        }
+    }
+
+    return forward - reverse;
 }
 
 struct ODESystem
@@ -72,13 +64,14 @@ struct ODESystem
 
     struct reaction_type
     {
+        std::string name;
         index_container_type reactants;
         coefficient_container_type reactant_coefficients;
         index_container_type products;
         coefficient_container_type product_coefficients;
         index_container_type enzymes;
-        bool reversible;
-        std::string name;
+        double forward;
+        double reverse;
     };
 
     typedef std::vector<reaction_type> reaction_container_type;
@@ -135,7 +128,7 @@ struct ODESystem
                     cnt++;
                 }
 
-                double flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction.reversible);
+                double flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
 
                 cnt = 0;
                 for (auto const& idx : reaction.reactants)
@@ -213,10 +206,10 @@ struct ODESystem
                     cnt++;
                 }
 
-                double const flux0 = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction.reversible);
+                double const flux0 = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
 
                 {
-                    double const flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t + ht, reaction.reversible);
+                    double const flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t + ht, reaction);
                     double const flux_deriv = (flux - flux0) / h;
 
                     if (flux_deriv != 0.0)
@@ -247,7 +240,7 @@ struct ODESystem
                 {
                     state_container_type h_shift(reactant_state);
                     h_shift[j] += h;
-                    double const flux = evaluate_reaction(h_shift, product_state, enzyme_state, volume, t, reaction.reversible);
+                    double const flux = evaluate_reaction(h_shift, product_state, enzyme_state, volume, t, reaction);
                     double const flux_deriv = (flux - flux0) / h;
                     matrix_type::size_type const col = reaction.reactants[j];
 
@@ -276,7 +269,7 @@ struct ODESystem
                 {
                     state_container_type h_shift(product_state);
                     h_shift[j] += h;
-                    double const flux = evaluate_reaction(reactant_state, h_shift, enzyme_state, volume, t, reaction.reversible);
+                    double const flux = evaluate_reaction(reactant_state, h_shift, enzyme_state, volume, t, reaction);
                     double const flux_deriv = (flux - flux0) / h;
                     matrix_type::size_type const col = reaction.products[j];
 
@@ -305,7 +298,7 @@ struct ODESystem
                 {
                     state_container_type h_shift(enzyme_state);
                     h_shift[j] += h;
-                    double const flux = evaluate_reaction(reactant_state, product_state, h_shift, volume, t, reaction.reversible);
+                    double const flux = evaluate_reaction(reactant_state, product_state, h_shift, volume, t, reaction);
                     double const flux_deriv = (flux - flux0) / h;
                     matrix_type::size_type const col = reaction.enzymes[j];
 
@@ -349,7 +342,7 @@ struct ODESystem
     }
 
     template <typename Treaction_>
-    void generate_reactions(std::vector<Treaction_> const& org, pool_type& pool)
+    void generate_reactions(std::vector<Treaction_> const& inputs, pool_type& pool)
     {
         std::unordered_map<id_type, state_type::size_type> index_map;
         state_type::size_type idx = 0;
@@ -360,13 +353,14 @@ struct ODESystem
         }
 
         reactions.clear();
-        reactions.reserve(org.size());
+        reactions.reserve(inputs.size());
 
-        for (Treaction_ const& r0 : org)
+        for (Treaction_ const& r0 : inputs)
         {
             reaction_type r;
-            // r.reversible = r0.reversible;
             r.name = r0.name;
+            r.forward = r0.forward;
+            r.reverse = r0.reverse;
 
             r.reactants.reserve(r0.left.size());
             r.products.reserve(r0.right.size());
@@ -514,32 +508,21 @@ struct ODESystem
         }
     }
 
-    void dump_variables(std::string const& filename, pool_type const& pool, double const t) const
+    // void dump_variables(std::string const& filename, pool_type const& pool, double const t) const
+    // {
+    //     std::ofstream ofs(filename, std::ios::out);
+    //     assert(ofs.is_open());
+
+    //     ofs << "#t=" << t << std::endl;
+
+    //     for (size_t idx = 0; idx < pool.size(); idx++)
+    //     {
+    //         ofs << pool.variables[idx] << "," << pool.values[idx] << "," << (pool.is_constant[idx] ? 1 : 0) << std::endl;
+    //     }
+    // }
+
+    void dump_fluxes(std::ostream& out, double const t = 0.0) const
     {
-        std::ofstream ofs(filename, std::ios::out);
-        assert(ofs.is_open());
-
-        ofs << "#t=" << t << std::endl;
-
-        for (size_t idx = 0; idx < pool.size(); idx++)
-        {
-            ofs << pool.variables[idx] << "," << pool.values[idx] << "," << (pool.is_constant[idx] ? 1 : 0) << std::endl;
-        }
-    }
-
-    void dump_fluxes(std::string const& filename, pool_type const& pool, double const t) const
-    {
-        ODESystem::state_type x(pool.size());
-        for (size_t idx = 0; idx < pool.size(); idx++)
-        {
-            x[idx] = static_cast<double>(pool.values[idx]);
-        }
-
-        std::ofstream ofs(filename, std::ios::out);
-        assert(ofs.is_open());
-
-        ofs << "#t=" << t << std::endl;
-
         for (auto const& reaction : reactions)
         {
             ODESystem::state_container_type reactant_state(reaction.reactants.size());
@@ -551,29 +534,26 @@ struct ODESystem
             cnt = 0;
             for (auto const& idx : reaction.reactants)
             {
-                reactant_state[cnt] = x[idx];
+                reactant_state[cnt] = state_init[idx];
                 cnt++;
             }
 
             cnt = 0;
             for (auto const& idx : reaction.products)
             {
-                product_state[cnt] = x[idx];
+                product_state[cnt] = state_init[idx];
                 cnt++;
             }
 
             cnt = 0;
             for (auto const& idx : reaction.enzymes)
             {
-                enzyme_state[cnt] = x[idx];
+                enzyme_state[cnt] = state_init[idx];
                 cnt++;
             }
 
-            double flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction.reversible);
-            // if (flux != 0.0)
-            {
-                ofs << reaction.name << "," << flux << std::endl;
-            }
+            double flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
+            out << reaction.name << "," << flux << std::endl;
         }
     }
 };

@@ -26,8 +26,13 @@ int main(int argc, char* argv[])
         w.pool.update(std::get<0>(elem), std::get<1>(elem), std::get<2>(elem));
     }
 
-    auto const metabolism = read_chemical_reactions(pathto + sep + "metabolism.csv");
-    LOG_INFO("%1% reactions were read from [%2%].", metabolism.size(), pathto + sep + "metabolism.csv");
+    {
+        // LOG_INFO("%1% reactions were read from [%2%].", metabolism.size(), pathto + sep + "metabolism.csv");
+        auto event1 = generate_enzymatic_chemical_reaction_event(1.0, read_chemical_reactions(pathto + sep + "metabolism.csv"));
+        double const tnext = event1->draw_next_time(w);
+        LOG_DEBUG("tnext = %1%", tnext);
+        dynamic_cast<EnzymaticChemicalReactionEvent&>(*event1).system.dump_fluxes(std::cout);
+    }
 
     EventScheduler<World> scheduler;
     scheduler.insert(generate_fixed_interval_callback_event<World>(

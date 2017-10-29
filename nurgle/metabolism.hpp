@@ -114,8 +114,8 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         }
 
         // dump_populations(w.pool);
-        system.dump_fluxes("fluxes.csv", w.pool, t);
-        system.dump_variables("compounds.csv", w.pool, t);
+        // system.dump_fluxes("fluxes.csv", w.pool, t);
+        // system.dump_variables("compounds.csv", w.pool, t);
 
         system.integrate(w.pool, t, dt_);
         t += dt_;
