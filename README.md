@@ -6,7 +6,9 @@
 
 ## How to
 
-Packages, `cmake`, `clang-3.8` and `libc++-dev`, and Boost headers are required to build this.
+Packages, `cmake`, `clang-3.8` and `libc++-dev`, and Boost headers (e.g. `libboost-dev`) are required to build this.
+
+Python3 and its packages, `cobra`, are also required. Install them with `pip`.
 
 Put EcoCyc data files into `inputs/21.1` directory, and build as follows.
 
