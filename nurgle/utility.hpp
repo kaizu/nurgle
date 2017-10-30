@@ -20,7 +20,7 @@ std::vector<std::string> split(std::string const& s, char delim, bool ignore = f
             elems.push_back(std::move(item));
         }
     }
-    return std::move(elems);
+    return elems;
 }
 
 // template<class InputIt, class T, class UnaryOperation>
