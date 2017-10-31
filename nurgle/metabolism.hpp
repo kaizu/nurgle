@@ -121,7 +121,7 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
             return {};
         }
 
-        // dump_populations(w.pool);
+        // dump_pool(std::cout, w.pool);
         // system.dump_fluxes("fluxes.csv", w.pool, t);
         // system.dump_variables("compounds.csv", w.pool, t);
 
@@ -131,30 +131,6 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
 
         return {};
     }
-
-    // static inline void dump_populations(pool_type const& pool, std::vector<Pool::id_type> const& names)
-    // {
-    //     for (auto const& name : names)
-    //     {
-    //         LOG_ERROR("%1% => %2% %3%", name, pool.get(name), (pool.check_constant(name) ? "(const)" : ""));
-    //     }
-    // }
-
-    // static inline void dump_populations(pool_type const& pool)
-    // {
-    //     std::vector<Pool::id_type>::const_iterator it1(pool.variables.begin());
-    //     std::vector<Pool::value_type>::const_iterator it2(pool.values.begin());
-    //     Pool::bool_container_type::const_iterator it3(pool.is_constant.begin());
-
-    //     for (; it1 != pool.variables.end(); ++it1, ++it2, ++it3)
-    //     {
-    //         Pool::value_type const& value = (*it2);
-    //         if (value != 0.0 && (*it1).find("@") != std::string::npos)
-    //         {
-    //             LOG_ERROR("%1% => %2% %3%", (*it1), value, (*it3 ? "(const)" : ""));
-    //         }
-    //     }
-    // }
 };
 
 template <typename... Trest_>

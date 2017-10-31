@@ -91,7 +91,18 @@ void dump_pool(std::ostream& out, Pool const& pool)
 {
     for (size_t i = 0; i < pool.size(); ++i)
     {
-        out << pool.variables[i] << "," << pool.values[i] << std::endl;
+        unsigned int c = (pool.is_constant[i] ? 1 : 0);
+        out << pool.variables[i] << "," << pool.values[i] << "," << c << std::endl;
+    }
+}
+
+template <typename Tcont_>
+void dump_pool(std::ostream& out, Pool const& pool, Tcont_ const& names)
+{
+    for (Pool::id_type const& name : names)
+    {
+        unsigned int c = (pool.check_constant(name) ? 1 : 0);
+        out << name << "," << pool.get(name) << "," << c << std::endl;
     }
 }
 
