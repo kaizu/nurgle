@@ -94,16 +94,24 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
             reactants = ';'.join('{}:{}'.format(name, -coef) for name, coef in reaction['metabolites'].items() if coef < 0)
             products = ';'.join('{}:{}'.format(name, coef) for name, coef in reaction['metabolites'].items() if coef > 0)
 
-            vf = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** -y[1])) if y[1] < 0 else x, reaction['metabolites'].items(), 1.0)
-            vr = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** y[1])) if y[1] > 0 else x, reaction['metabolites'].items(), 1.0)
+            # vf = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** -y[1])) if y[1] < 0 else x, reaction['metabolites'].items(), 1.0)
+            # vr = functools.reduce(lambda x, y: (x * (compounds[y[0]] ** y[1])) if y[1] > 0 else x, reaction['metabolites'].items(), 1.0)
+            vf = functools.reduce(lambda x, y: (x * compounds[y[0]]) if y[1] < 0 else x, reaction['metabolites'].items(), 1.0)
+            vr = functools.reduce(lambda x, y: (x * compounds[y[0]]) if y[1] > 0 else x, reaction['metabolites'].items(), 1.0)
             vfmax, vrmax = 0.0, 0.0
 
             if flux > 0.0:
-                assert vf > 0.0
-                vfmax = flux / vf
+                # assert vf > 0.0
+                # vfmax = flux / vf
+                assert vf > 0.0 and vr > 0.0
+                vfmax = 2 * flux / vf
+                vrmax = flux / vr
             elif flux < 0.0:
-                assert vr > 0.0
-                vrmax = -flux / vr
+                # assert vr > 0.0
+                # vrmax = -flux / vr
+                assert vf > 0.0 and vr > 0.0
+                vfmax = -flux / vf
+                vrmax = 2 * -flux / vr
             else:
                 # flux == 0.0
                 pass  # do nothing
