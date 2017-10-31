@@ -34,3 +34,8 @@
 *.swp
 *~
 .vscode/*
+
+*.pyc
+
+inputs/*
+build/*
