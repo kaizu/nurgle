@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <unordered_map>
+#include <boost/operators.hpp>
 
 #include <nurgle/defs.hpp>
 
@@ -164,8 +165,33 @@ struct EventScheduler
     typedef typename event_type::world_type world_type;
     typedef typename event_type::token_type token_type;
 
-    std::vector<std::unique_ptr<event_type>> events;
-    std::vector<double> next_times;
+    typedef unsigned int event_id_type;
+
+    typedef struct EventQueue
+        : private boost::less_than_comparable<
+            boost::equality_comparable<EventQueue>>
+    {
+        event_id_type id;
+        std::unique_ptr<event_type> event;
+        int priority;
+        double next_time;
+
+        EventQueue(event_id_type id, std::unique_ptr<event_type>&& event, int priority, double next_time)
+            : id(id), event(std::move(event)), priority(priority), next_time(next_time)
+        {}
+
+        bool operator<(EventQueue const& x) const
+        {
+            return (next_time == x.next_time ? priority > x.priority : next_time < x.next_time);
+        }
+
+        bool operator==(EventQueue const& x) const
+        {
+            return priority == x.priority && next_time == x.next_time;
+        }
+    } event_queue_type;
+
+    std::vector<event_queue_type> events;
 
     std::unordered_map<token_type, std::vector<size_t>> dependencies_;
 
@@ -180,10 +206,10 @@ struct EventScheduler
         {
             return Inf;
         }
-        return (*min_element(next_times.begin(), next_times.end()));
+        return (*min_element(events.begin(), events.end())).next_time;
     }
 
-    void insert(std::unique_ptr<event_type> event)
+    void insert(std::unique_ptr<event_type> event, int priority = 0)
     {
         size_t const idx = events.size();
 
@@ -200,8 +226,7 @@ struct EventScheduler
             }
         }
 
-        events.push_back(std::move(event));
-        next_times.push_back(0.0);
+        events.push_back(event_queue_type(0, std::move(event), priority, 0.0));
     }
 
     void run(world_type& w, double const duration)
@@ -226,15 +251,13 @@ struct EventScheduler
             return false;
         }
 
-        // auto it = std::min_element(next_times.begin(), next_times.end());
-        auto it = min_element(next_times.begin(), next_times.end(), getrng(w));
-        if ((*it) <= upto)
+        auto it = min_element(events.begin(), events.end(), getrng(w));
+        if ((*it).next_time <= upto)
         {
-            sett(w, *it);
-            size_t pos = std::distance(next_times.begin(), it);
-            std::vector<token_type> const mutators = events[pos]->fire(w);
-            events[pos]->num_steps++;
-            update(w, pos, mutators);
+            sett(w, (*it).next_time);
+            std::vector<token_type> const mutators = (*it).event->fire(w);
+            (*it).event->num_steps++;
+            update(w, (*it), mutators);
             return true;
         }
         else
@@ -248,15 +271,15 @@ struct EventScheduler
     {
         for (size_t i = 0; i < events.size(); ++i)
         {
-            events[i]->interrupt(w);
-            next_times[i] = events[i]->draw_next_time(w);
+            events[i].event->interrupt(w);
+            events[i].next_time = events[i].event->draw_next_time(w);
         }
     }
 
-    void update(world_type& w, size_t const pos, std::vector<token_type> const& mutators)
+    void update(world_type& w, event_queue_type& queue, std::vector<token_type> const& mutators)
     {
-        events[pos]->interrupt(w);
-        next_times[pos] = events[pos]->draw_next_time(w);
+        queue.event->interrupt(w);
+        queue.next_time = queue.event->draw_next_time(w);
 
         for (token_type const& type : mutators)
         {
@@ -269,22 +292,22 @@ struct EventScheduler
 
             for (size_t const idx : (*it).second)
             {
-                events[idx]->interrupt(w);
-                next_times[idx] = events[idx]->draw_next_time(w);
-                // std::cout << "[" << idx << "] was updated. => " << next_times[idx] << std::endl;
+                events[idx].event->interrupt(w);
+                events[idx].next_time = events[idx].event->draw_next_time(w);
+                // std::cout << "[" << idx << "] was updated. => " << events[idx].next_time << std::endl;
             }
         }
 
         // for (size_t i = 0; i < events.size(); ++i)
         // {
         //     auto pred = [&](std::string const type) -> bool {
-        //         auto const accessors = events[i]->accessors();
+        //         auto const accessors = events[i].event->accessors();
         //         return std::find(accessors.begin(), accessors.end(), type) != accessors.end(); };
 
         //     if (i == pos || std::any_of(mutators.begin(), mutators.end(), pred))
         //     {
-        //         events[i]->interrupt(w);
-        //         next_times[i] = events[i]->draw_next_time(w);
+        //         events[i].event->interrupt(w);
+        //         events[i].next_time = events[i].event->draw_next_time(w);
         //     }
         // }
     }

@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     w.rng.seed(seed);
 
     read_pool(pathto + sep + "compounds.csv", w.pool);
-    w.pool.update("Acetoacetyl_ACPs_c", 0.5);
+    w.pool.update("Acetoacetyl_ACPs_c", 1.1);
     std::cout << "Acetoacetyl_ACPs_c" << " = " << w.pool.get("Acetoacetyl_ACPs_c") << std::endl;
 
     EventScheduler<World> scheduler;
@@ -31,7 +31,7 @@ int main(int argc, char* argv[])
             std::cout << "The current time is " << w.t << "." << std::endl;
             std::cout << "Acetoacetyl_ACPs_c" << " = " << w.pool.get("Acetoacetyl_ACPs_c") << std::endl;
             return {};
-            }));
+            }), -1);
 
     scheduler.insert(
         generate_enzymatic_chemical_reaction_event(10.0, pathto + sep + "metabolism.csv"));
