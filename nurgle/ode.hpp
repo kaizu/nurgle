@@ -173,10 +173,13 @@ struct ODESystem
         reaction_container_type const& reactions;
         double const volume;
         bool_container_type const& is_constant;
+        double const abs_tol, rel_tol;
 
         jacobi_func(reaction_container_type const& reactions, double const& volume,
-                    bool_container_type const& is_constant)
-            : reactions(reactions), volume(volume), is_constant(is_constant)
+                    bool_container_type const& is_constant,
+                    double const abs_tol, double const rel_tol)
+            : reactions(reactions), volume(volume), is_constant(is_constant),
+            abs_tol(abs_tol), rel_tol(rel_tol)
         {
             ;
         }
@@ -187,9 +190,21 @@ struct ODESystem
             std::fill(dfdt.begin(), dfdt.end(), 0.0);
             std::fill(jacobi.data().begin(), jacobi.data().end(), 0.0);
 
-            const double h(1.0e-12);
-            // const double h(1.0e-8);
-            const double ht(1.0e-10);
+            double const SQRTETA(1.4901161193847656e-08);
+            double const r0(1.0);
+            // double fac(0.0);
+            // for (std::size_t k(0); k < dfdt.size(); ++k)
+            // {
+            //     double const ewtk(atol + rtol * x[k]);
+            //     fac = std::max(fac, dfdt[k] * ewtk);
+            // }
+            // double const r0(1000.0 * h * ETA * dfdt.size() * fac);  //XXX: h means the step interval
+            // {
+            //     double const ewtj(atol + rtol * x[j]);
+            //     double const dyj(std::max(SQRTETA * abs(x[j]), r0 * ewtj));
+            // }
+
+            double const ht(1.0e-10);
 
             for (auto const& reaction : reactions)
             {
@@ -226,7 +241,7 @@ struct ODESystem
 
                 {
                     double const flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t + ht, reaction);
-                    double const flux_deriv = (flux - flux0) / h;
+                    double const flux_deriv = (flux - flux0) / ht;
 
                     if (flux_deriv != 0.0)
                     {
@@ -254,6 +269,8 @@ struct ODESystem
 
                 for (std::size_t j(0); j < reactant_state.size(); j++)
                 {
+                    double const ewt = abs_tol + rel_tol * std::abs(reactant_state[j]);
+                    double const h = std::max(SQRTETA * std::abs(reactant_state[j]), r0 * ewt);
                     state_container_type h_shift(reactant_state);
                     h_shift[j] += h;
                     double const flux = evaluate_reaction(h_shift, product_state, enzyme_state, volume, t, reaction);
@@ -283,6 +300,8 @@ struct ODESystem
 
                 for (std::size_t j(0); j < product_state.size(); j++)
                 {
+                    double const ewt = abs_tol + rel_tol * std::abs(product_state[j]);
+                    double const h = std::max(SQRTETA * std::abs(product_state[j]), r0 * ewt);
                     state_container_type h_shift(product_state);
                     h_shift[j] += h;
                     double const flux = evaluate_reaction(reactant_state, h_shift, enzyme_state, volume, t, reaction);
@@ -312,6 +331,8 @@ struct ODESystem
 
                 for (std::size_t j(0); j < enzyme_state.size(); j++)
                 {
+                    double const ewt = abs_tol + rel_tol * std::abs(enzyme_state[j]);
+                    double const h = std::max(SQRTETA * std::abs(enzyme_state[j]), r0 * ewt);
                     state_container_type h_shift(enzyme_state);
                     h_shift[j] += h;
                     double const flux = evaluate_reaction(reactant_state, product_state, h_shift, volume, t, reaction);
@@ -345,9 +366,10 @@ struct ODESystem
     state_type state_init;
     reaction_container_type reactions;
     double volume;
+    double abs_tol, rel_tol;
 
-    ODESystem()
-        : reactions(), volume(1.0)
+    ODESystem(double const abs_tol = 1e-12, double const rel_tol = 1e-8)
+        : reactions(), volume(1.0), abs_tol(abs_tol), rel_tol(rel_tol)
     {
         ;
     }
@@ -486,7 +508,7 @@ struct ODESystem
                 typedef odeint::rosenbrock4<state_type::value_type> error_stepper_type;
                 steps = odeint::integrate_adaptive(
                     odeint::make_controlled<error_stepper_type>(abs_tol, rel_tol),
-                    std::make_pair(deriv_func(reactions, volume, pool.is_constant), jacobi_func(reactions, volume, pool.is_constant)),
+                    std::make_pair(deriv_func(reactions, volume, pool.is_constant), jacobi_func(reactions, volume, pool.is_constant, abs_tol, rel_tol)),
                     state_init, t, t + dt, subdt,
                     [&](const state_type& state, const double t) {
                         timelog.push_back(t);
