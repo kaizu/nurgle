@@ -23,19 +23,19 @@ std::vector<std::string> split(std::string const& s, char delim, bool ignore = f
     return elems;
 }
 
-// template<class InputIt, class T, class UnaryOperation>
-// inline T product(InputIt first, InputIt last, T init, UnaryOperation op)
-// {
-//     return std::accumulate(first, last, init, [&op](T const& a, T const& b) -> T {
-//         return std::multiplies<T>()(a, op(b));
-//         });
-// }
-// 
-// template<class InputIt, class T>
-// inline T product(InputIt first, InputIt last, T init)
-// {
-//     return std::accumulate(first, last, init, std::multiplies<T>());
-// }
+template<class InputIt, class T, class UnaryOperation>
+inline T product(InputIt first, InputIt last, T init, UnaryOperation op)
+{
+    return std::accumulate(first, last, init, [&op](T const& a, T const& b) -> T {
+        return std::multiplies<T>()(a, op(b));
+        });
+}
+
+template<class InputIt, class T>
+inline T product(InputIt first, InputIt last, T init)
+{
+    return std::accumulate(first, last, init, std::multiplies<T>());
+}
 
 } // utils
 

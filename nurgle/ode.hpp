@@ -27,23 +27,28 @@ double evaluate_reaction(
     double const volume, double const t,
     Treaction_ const& reaction)
 {
-    double forward = reaction.forward;
-    if (forward > 0.0)
-    {
-        for (size_t i = 0; i < reactants.size(); ++i)
-        {
-            forward *= std::pow(reactants[i], reaction.reactant_coefficients[i]);
-        }
-    }
+    double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward);
+    double const reverse = utils::product(products.begin(), products.end(), reaction.reverse);
 
-    double reverse = reaction.reverse;
-    if (reverse > 0.0)
-    {
-        for (size_t i = 0; i < products.size(); ++i)
-        {
-            reverse *= std::pow(products[i], reaction.product_coefficients[i]);
-        }
-    }
+    // double forward = reaction.forward;
+    // if (forward > 0.0)
+    // {
+    //     for (size_t i = 0; i < reactants.size(); ++i)
+    //     {
+    //         assert(reaction.reactant_coefficients[i] > 0);
+    //         forward *= std::pow(reactants[i], reaction.reactant_coefficients[i]);
+    //     }
+    // }
+
+    // double reverse = reaction.reverse;
+    // if (reverse > 0.0)
+    // {
+    //     for (size_t i = 0; i < products.size(); ++i)
+    //     {
+    //         assert(reaction.product_coefficients[i] > 0);
+    //         reverse *= std::pow(products[i], reaction.product_coefficients[i]);
+    //     }
+    // }
 
     return forward - reverse;
 }
@@ -97,6 +102,16 @@ struct ODESystem
 
         void operator()(state_type const& x, state_type& dxdt, double const& t) const
         {
+            // for (size_t i = 0; i < x.size(); ++i)
+            // {
+            //     auto const val = x[i];
+            //     if (isnan(val))
+            //     {
+            //         std::cout << i << " " << val << std::endl;
+            //     }
+            //     assert(isnan(val) == false);
+            // }
+
             std::fill(dxdt.begin(), dxdt.end(), 0.0);
 
             for (auto const& reaction : reactions)
@@ -172,7 +187,8 @@ struct ODESystem
             std::fill(dfdt.begin(), dfdt.end(), 0.0);
             std::fill(jacobi.data().begin(), jacobi.data().end(), 0.0);
 
-            const double h(1.0e-8);
+            const double h(1.0e-12);
+            // const double h(1.0e-8);
             const double ht(1.0e-10);
 
             for (auto const& reaction : reactions)
@@ -507,19 +523,6 @@ struct ODESystem
             // assert(pool.values[idx] >= 0);
         }
     }
-
-    // void dump_variables(std::string const& filename, pool_type const& pool, double const t) const
-    // {
-    //     std::ofstream ofs(filename, std::ios::out);
-    //     assert(ofs.is_open());
-
-    //     ofs << "#t=" << t << std::endl;
-
-    //     for (size_t idx = 0; idx < pool.size(); idx++)
-    //     {
-    //         ofs << pool.variables[idx] << "," << pool.values[idx] << "," << (pool.is_constant[idx] ? 1 : 0) << std::endl;
-    //     }
-    // }
 
     void dump_fluxes(std::ostream& out, double const t = 0.0) const
     {

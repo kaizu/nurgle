@@ -21,15 +21,15 @@ int main(int argc, char* argv[])
     w.rng.seed(seed);
 
     read_pool(pathto + sep + "compounds.csv", w.pool);
-    w.pool.update("Pimeloyl_ACPs_c", 2.0);
-    std::cout << "Pimeloyl_ACPs_c" << " = " << w.pool.get("Pimeloyl_ACPs_c") << std::endl;
+    w.pool.update("Acetoacetyl_ACPs_c", 0.5);
+    std::cout << "Acetoacetyl_ACPs_c" << " = " << w.pool.get("Acetoacetyl_ACPs_c") << std::endl;
 
     EventScheduler<World> scheduler;
 
     scheduler.insert(generate_fixed_interval_callback_event<World>(
         "TimerEvent", 10.0, [&](World& w) -> std::vector<EventScheduler<World>::token_type> {
             std::cout << "The current time is " << w.t << "." << std::endl;
-            std::cout << "Pimeloyl_ACPs_c" << " = " << w.pool.get("Pimeloyl_ACPs_c") << std::endl;
+            std::cout << "Acetoacetyl_ACPs_c" << " = " << w.pool.get("Acetoacetyl_ACPs_c") << std::endl;
             return {};
             }));
 
@@ -38,7 +38,7 @@ int main(int argc, char* argv[])
 
     scheduler.run(w, 100.0);
 
-    dump_pool(std::cout, w.pool);
+    // dump_pool(std::cout, w.pool);
 
     return 0;
 }
