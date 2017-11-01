@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.6)
 project(nurgle)
 
-set(CMAKE_VERBOSE_MAKEFILE ON)
+# set(CMAKE_VERBOSE_MAKEFILE ON)
 set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 
 set(OUTPUTS
