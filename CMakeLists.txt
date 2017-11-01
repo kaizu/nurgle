@@ -34,3 +34,4 @@ include_directories(.)
 
 add_subdirectory(nurgle)
 add_subdirectory(samples)
+add_subdirectory(notebooks)
