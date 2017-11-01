@@ -51,9 +51,10 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv DESTINATION sha
 
 add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html
-    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/outputs jupyter nbconvert --to html --execute ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/index.ipynb --output ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/outputs jupyter nbconvert --config ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/ipython_nbconvert_config.py --execute ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/index.ipynb --output ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/index.ipynb
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/ipython_nbconvert_config.py
     )
 add_custom_target(
     html DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html)
