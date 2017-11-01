@@ -39,3 +39,4 @@
 
 inputs/*
 build/*
+notebooks/.ipynb_checkpoints/*
