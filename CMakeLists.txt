@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.6)
 project(nurgle)
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
+
 set(OUTPUTS
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/metabolism.csv
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/compounds.csv
@@ -35,3 +38,23 @@ include_directories(.)
 add_subdirectory(nurgle)
 add_subdirectory(samples)
 add_subdirectory(notebooks)
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/outputs ${CMAKE_CURRENT_BINARY_DIR}/samples/main .
+    DEPENDS main
+    DEPENDS outputs
+    )
+add_custom_target(
+    timecourse DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv DESTINATION share/nurgle OPTIONAL)
+
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html
+    COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/outputs jupyter nbconvert --to html --execute ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/index.ipynb --output ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html
+    DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv
+    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/index.ipynb
+    )
+add_custom_target(
+    html DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html DESTINATION share/nurgle OPTIONAL)
