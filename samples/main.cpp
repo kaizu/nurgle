@@ -36,7 +36,7 @@ int main(int argc, char* argv[])
     LOG_LEVEL(Logger::L_DEBUG);
 
     std::string const sep("/");
-    std::string const pathto(argc > 0 ? argv[1] : ".");
+    std::string const pathto(argc > 1 ? argv[1] : ".");
 
     World w;
     unsigned int const seed = 0;
@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
     scheduler.insert(
         generate_enzymatic_chemical_reaction_event(1.0, pathto + sep + "metabolism.csv"));
 
-    double const duration = (argc > 1 ? std::atof(argv[2]) : 100);
+    double const duration = (argc > 2 ? std::atof(argv[2]) : 300);
     scheduler.run(w, duration);
 
     // dump_pool(std::cout, w.pool);
