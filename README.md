@@ -4,6 +4,8 @@
 > 
 > -- <cite>The Chant of Nurgle</cite>
 
+An example of the output is available [here](https://kaizu.github.io/nurgle/).
+
 ## How to
 
 Packages, `cmake`, `clang-3.8` and `libc++-dev`, and Boost headers (e.g. `libboost-dev`) are required to build this.
