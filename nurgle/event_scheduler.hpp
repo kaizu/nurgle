@@ -3,6 +3,7 @@
 #include <utility>
 #include <unordered_map>
 #include <boost/operators.hpp>
+#include <boost/optional.hpp>
 
 #include <nurgle/defs.hpp>
 
@@ -164,7 +165,6 @@ struct EventScheduler
     typedef Event<_Tworld> event_type;
     typedef typename event_type::world_type world_type;
     typedef typename event_type::token_type token_type;
-
     typedef unsigned int event_id_type;
 
     typedef struct EventQueue
@@ -209,7 +209,27 @@ struct EventScheduler
         return (*min_element(events.begin(), events.end())).next_time;
     }
 
-    void insert(std::unique_ptr<event_type> event, int priority = 0)
+    template <class Tderived_ = event_type>
+    boost::optional<Tderived_&> get(event_id_type const id)
+    {
+        if (Tderived_* event = dynamic_cast<Tderived_*>(events[id].event.get()))
+        {
+            return boost::optional<Tderived_&>(*event);
+        }
+        return boost::optional<Tderived_&>();
+    }
+
+    template <class Tderived_ = event_type>
+    Tderived_& as(event_id_type const id)
+    {
+        if (auto event = this->get<Tderived_>(id))
+        {
+            return *event;
+        }
+        throw std::runtime_error("An invalid type was given.");
+    }
+
+    event_id_type insert(std::unique_ptr<event_type> event, int priority = 0)
     {
         size_t const idx = events.size();
 
@@ -226,7 +246,8 @@ struct EventScheduler
             }
         }
 
-        events.push_back(event_queue_type(0, std::move(event), priority, 0.0));
+        events.push_back(event_queue_type(idx, std::move(event), priority, 0.0));
+        return idx;
     }
 
     void run(world_type& w, double const duration)
