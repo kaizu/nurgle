@@ -8,7 +8,7 @@
 #include <nurgle/metabolism.hpp>
 
 
-void timecourse(std::string const& filename, nurgle::World const& w)
+void timecourse(std::string const& filename, nurgle::World const& w, nurgle::ode::ODESystem const& system)
 {
     std::ofstream ofs(filename, (w.t == 0 ? std::ios::out : std::ios::app));
     assert(ofs.is_open());
@@ -19,6 +19,10 @@ void timecourse(std::string const& filename, nurgle::World const& w)
         {
             ofs << "," << name;
         }
+        for (auto const& reaction : system.reactions)
+        {
+            ofs << "," << reaction.name;
+        }
         ofs << std::endl;
     }
 
@@ -26,6 +30,10 @@ void timecourse(std::string const& filename, nurgle::World const& w)
     for (auto const& val : w.pool.values)
     {
         ofs << "," << val;
+    }
+    for (auto const& reaction : system.reactions)
+    {
+        ofs << "," << system.evaluate(reaction, w.t);
     }
     ofs << std::endl;
 }
@@ -43,22 +51,26 @@ int main(int argc, char* argv[])
     w.rng.seed(seed);
 
     read_pool(pathto + sep + "compounds.csv", w.pool);
-    w.pool.update("Acetoacetyl_ACPs_c", 1.1);
+    std::string target("Acetoacetyl_ACPs_c");
+    w.pool.update(target, 1.1);
+
+    double const dt = 1.0;
+    double const duration = (argc > 2 ? std::atof(argv[2]) : 300);
 
     EventScheduler<World> scheduler;
 
+    auto const event_id1 = scheduler.insert(
+        generate_enzymatic_chemical_reaction_event(dt, pathto + sep + "metabolism.csv"));
+    auto const& system = scheduler.as<EnzymaticChemicalReactionEvent>(event_id1).system;
+
     scheduler.insert(generate_fixed_interval_callback_event<World>(
-        "TimerEvent", 1.0, [&](World& w) -> std::vector<EventScheduler<World>::token_type> {
-            timecourse("timecourse.csv", w);
+        "TimerEvent", dt, [&](World& w) -> std::vector<EventScheduler<World>::token_type> {
+            timecourse("timecourse.csv", w, system);
             std::cout << "The current time is " << w.t << "." << std::endl;
-            std::cout << "Acetoacetyl_ACPs_c" << " = " << w.pool.get("Acetoacetyl_ACPs_c") << std::endl;
+            std::cout << target << " = " << w.pool.get(target) << std::endl;
             return {};
             }), -1);
 
-    scheduler.insert(
-        generate_enzymatic_chemical_reaction_event(1.0, pathto + sep + "metabolism.csv"));
-
-    double const duration = (argc > 2 ? std::atof(argv[2]) : 300);
     scheduler.run(w, duration);
 
     // dump_pool(std::cout, w.pool);

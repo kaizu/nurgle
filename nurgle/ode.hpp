@@ -546,39 +546,43 @@ struct ODESystem
         }
     }
 
+    double evaluate(reaction_type const& reaction, double const t = 0.0) const
+    {
+        ODESystem::state_container_type reactant_state(reaction.reactants.size());
+        ODESystem::state_container_type product_state(reaction.products.size());
+        ODESystem::state_container_type enzyme_state(reaction.enzymes.size());
+
+        std::size_t cnt;
+
+        cnt = 0;
+        for (auto const& idx : reaction.reactants)
+        {
+            reactant_state[cnt] = state_init[idx];
+            cnt++;
+        }
+
+        cnt = 0;
+        for (auto const& idx : reaction.products)
+        {
+            product_state[cnt] = state_init[idx];
+            cnt++;
+        }
+
+        cnt = 0;
+        for (auto const& idx : reaction.enzymes)
+        {
+            enzyme_state[cnt] = state_init[idx];
+            cnt++;
+        }
+
+        return evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
+    }
+
     void dump_fluxes(std::ostream& out, double const t = 0.0) const
     {
         for (auto const& reaction : reactions)
         {
-            ODESystem::state_container_type reactant_state(reaction.reactants.size());
-            ODESystem::state_container_type product_state(reaction.products.size());
-            ODESystem::state_container_type enzyme_state(reaction.enzymes.size());
-
-            std::size_t cnt;
-
-            cnt = 0;
-            for (auto const& idx : reaction.reactants)
-            {
-                reactant_state[cnt] = state_init[idx];
-                cnt++;
-            }
-
-            cnt = 0;
-            for (auto const& idx : reaction.products)
-            {
-                product_state[cnt] = state_init[idx];
-                cnt++;
-            }
-
-            cnt = 0;
-            for (auto const& idx : reaction.enzymes)
-            {
-                enzyme_state[cnt] = state_init[idx];
-                cnt++;
-            }
-
-            double flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
-            out << reaction.name << "," << flux << std::endl;
+            out << reaction.name << "," << evaluate(reaction, t) << std::endl;
         }
     }
 };
