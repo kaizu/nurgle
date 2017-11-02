@@ -8,6 +8,7 @@ import os.path
 import json
 import csv
 import functools
+import re
 
 INPUTS_PATH = 'inputs'
 OUTPUTS_PATH = 'outputs'
@@ -42,6 +43,40 @@ def solve_fba_using_cobra(data):
 
     return data
 
+def assume_source(data, default_location='CCO-CYTOSOL'):
+    for i in range(len(data['reactions'])):
+        reaction = data['reactions'][i]
+        if reaction['id'].startswith('__') or reaction['id'] == 'MetaFlux_obj':
+            log_.debug('reaction [{}] has no corresponding reaction.'.format(reaction['id']))
+            continue
+        elif 'name' not in reaction:
+            log_.warn('reaction [{}] has no name.'.format(reaction['id']))
+            continue
+
+        if '/' not in reaction['name']:
+            rid = reaction['name']
+        else:
+            rid = reaction['name'].split('/')[0]
+            for name in reaction['metabolites']:
+                if re.sub(r'[-\+]', '_', rid).endswith('_{}'.format(name[: -2])):
+                    rid = rid[: -len(name)+1]
+                    break
+            else:
+                log_.warn('reaction [{}] has reactants [{}].'.format(reaction['name'].split('/')[0].replace('-', '_'), [name for name, coef in reaction['metabolites'].items()]))
+                continue
+
+        loc = default_location
+        mobj = re.search(r'\[([^\[\]]+)\]', rid)
+        if mobj is not None:
+            loc = mobj[1]
+            rid = rid[: -len(loc)-2]
+        assert '[' not in rid and ']' not in rid
+
+        reaction['source'] = dict(id=rid, location=loc)
+        log_.debug('reaction id of [{}] was assumed to be [{}@{}].'.format(reaction['id'], rid, loc))
+
+    return data
+
 def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
     log_.info('generate_ecocyc_fba(ECOCYC_VERSION="{}")'.format(ECOCYC_VERSION))
 
@@ -52,6 +87,7 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
     with open(filename, 'r') as fin:
         data = json.load(fin)
 
+    data = assume_source(data)
     data = solve_fba_using_cobra(data)
 
     compounds = []
