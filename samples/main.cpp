@@ -8,13 +8,16 @@
 #include <nurgle/metabolism.hpp>
 
 
-void timecourse(std::string const& filename, nurgle::World const& w, nurgle::ode::ODESystem const& system)
+void timecourse(
+    std::string const& filename, nurgle::World const& w, nurgle::ode::ODESystem const& system,
+    std::ios_base::openmode mode = std::ios_base::app)
 {
-    std::ofstream ofs(filename, (w.t == 0 ? std::ios::out : std::ios::app));
+    std::ofstream ofs(filename, mode);
     assert(ofs.is_open());
 
-    if (w.t == 0)
+    if (mode == std::ios_base::out)
     {
+        ofs << "Time";
         for (auto const& name : w.pool.variables)
         {
             ofs << "," << name;
@@ -51,11 +54,10 @@ int main(int argc, char* argv[])
     w.rng.seed(seed);
 
     read_pool(pathto + sep + "compounds.csv", w.pool);
-    std::string target("Acetoacetyl_ACPs_c");
-    w.pool.update(target, 1.1);
 
     double const dt = 1.0;
     double const duration = (argc > 2 ? std::atof(argv[2]) : 300);
+    std::string target("Acetoacetyl_ACPs_c");
 
     EventScheduler<World> scheduler;
 
@@ -70,6 +72,11 @@ int main(int argc, char* argv[])
             std::cout << target << " = " << w.pool.get(target) << std::endl;
             return {};
             }), -1);
+
+    scheduler.update(w);
+    timecourse("timecourse.csv", w, system, std::ios_base::out);
+
+    w.pool.update(target, 1.1);
 
     scheduler.run(w, duration);
 
