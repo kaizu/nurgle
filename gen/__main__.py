@@ -150,7 +150,11 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
                 vrmax = 2 * -flux / vr
             else:
                 # flux == 0.0
-                pass  # do nothing
+                if reaction['lower_bound'] >= 0 or reaction['upper_bound'] <= 0:
+                    pass  # do nothing
+                else:
+                    vfmax = 1.0 / vf
+                    vrmax = 1.0 / vr
 
             writer.writerow((reaction['id'], reactants, products, vfmax, vrmax))
 

@@ -55,8 +55,8 @@ int main(int argc, char* argv[])
 
     read_pool(pathto + sep + "compounds.csv", w.pool);
 
-    double const dt = 1.0;
-    double const duration = (argc > 2 ? std::atof(argv[2]) : 300);
+    double const dt = 3.0;
+    double const duration = (argc > 2 ? std::atof(argv[2]) : dt * 100);
     std::string target("Acetoacetyl_ACPs_c");
 
     EventScheduler<World> scheduler;
