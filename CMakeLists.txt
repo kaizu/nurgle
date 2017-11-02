@@ -57,5 +57,5 @@ add_custom_command(
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/ipython_nbconvert_config.py
     )
 add_custom_target(
-    html DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html)
+    docs DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html DESTINATION share/nurgle OPTIONAL)
