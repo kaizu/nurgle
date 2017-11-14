@@ -43,10 +43,10 @@ add_custom_command(
     OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv
     COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_CURRENT_BINARY_DIR}/outputs ${CMAKE_CURRENT_BINARY_DIR}/samples/main .
     DEPENDS main
-    DEPENDS outputs
+    DEPENDS ${OUTPUTS}
     )
 add_custom_target(
-    timecourse DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv)
+    timecourse SOURCES ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/outputs/timecourse.csv DESTINATION share/nurgle OPTIONAL)
 
 add_custom_command(
@@ -57,5 +57,5 @@ add_custom_command(
     DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/notebooks/ipython_nbconvert_config.py
     )
 add_custom_target(
-    docs DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html)
+    docs SOURCES ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/outputs/index.html DESTINATION share/nurgle OPTIONAL)
