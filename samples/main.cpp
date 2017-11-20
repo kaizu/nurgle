@@ -55,9 +55,11 @@ int main(int argc, char* argv[])
 
     read_pool(pathto + sep + "compounds.csv", w.pool);
 
-    double const dt = 3.0;
+    double const dt = 100.0;
     double const duration = (argc > 2 ? std::atof(argv[2]) : dt * 100);
-    std::string target("Acetoacetyl_ACPs_c");
+    // std::string target("GLC_e");
+    std::string target("LEU_c");
+    // std::string target("Acetoacetyl_ACPs_c");
 
     EventScheduler<World> scheduler;
 
@@ -69,14 +71,15 @@ int main(int argc, char* argv[])
         "TimerEvent", dt, [&](World& w) -> std::vector<EventScheduler<World>::token_type> {
             timecourse("timecourse.csv", w, system);
             std::cout << "The current time is " << w.t << "." << std::endl;
-            std::cout << target << " = " << w.pool.get(target) << std::endl;
+            std::cout << target << " = " << w.pool.get(target) - 1.0 << std::endl;
             return {};
             }), -1);
 
     scheduler.update(w);
     timecourse("timecourse.csv", w, system, std::ios_base::out);
 
-    w.pool.update(target, 1.1);
+    // w.pool.update(target, 1.1);
+    w.pool.update(target, 1.0 + 1e-1);
 
     scheduler.run(w, duration);
 

@@ -5,6 +5,7 @@
 #include <nurgle/event_scheduler.hpp>
 #include <nurgle/world.hpp>
 #include <nurgle/ode.hpp>
+#include <nurgle/utility.hpp>
 
 // #define NDEBUG
 
@@ -18,12 +19,13 @@ struct ChemicalReaction
     std::vector<std::tuple<std::string, double>> right;
     double forward;
     double reverse;
+    std::vector<std::string> enzymes;
 };
 
 std::vector<ChemicalReaction>
     read_chemical_reactions(std::string const filename)
 {
-    typedef utils::csv<std::string, std::string, std::string, std::string, std::string> csv_type;
+    typedef utils::csv<std::string, std::string, std::string, std::string, std::string, std::string> csv_type;
     typedef ChemicalReaction ret_type;
     return csv_type::read<ret_type>(
         filename,
@@ -34,6 +36,7 @@ std::vector<ChemicalReaction>
             reaction.right = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<2>(x)), ';');
             reaction.forward = std::stod(std::get<3>(x));
             reaction.reverse = std::stod(std::get<4>(x));
+            reaction.enzymes = utils::split(std::get<5>(x), ';');
             return reaction;
             });
 }

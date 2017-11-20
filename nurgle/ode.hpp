@@ -27,8 +27,49 @@ double evaluate_reaction(
     double const volume, double const t,
     Treaction_ const& reaction)
 {
+    // if (reaction.reverse == 0.0)
+    // {
+    //     if (reactants.size() != 0)
+    //         return utils::product(reactants.begin(), reactants.end(), reaction.forward, [](double const x){ return x / (x + 0.25); });
+    //     else
+    //         return utils::product(products.begin(), products.end(), reaction.forward, [](double const x){ return 1.0 / (x + 0.25); });
+    // }
+    // else if (reaction.forward == 0.0)
+    // {
+    //     if (products.size() != 0)
+    //        return utils::product(products.begin(), products.end(), -reaction.reverse, [](double const x){ return x / (x + 0.25); });
+    //     else
+    //        return utils::product(reactants.begin(), reactants.end(), -reaction.reverse, [](double const x){ return 1.0 / (x + 0.25); });
+    // }
+    // return 0.0;
+
+    // double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward, [](double const x){ return x / (x + 0.25); });
+    // double const reverse = utils::product(products.begin(), products.end(), reaction.reverse, [](double const x){ return x / (x + 0.25); });
     double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward);
     double const reverse = utils::product(products.begin(), products.end(), reaction.reverse);
+
+    double const Km = 1.0;
+    double denom1 = 1.0;
+    for (size_t i = 0; i < reactants.size(); ++i)
+    {
+        assert(reaction.reactant_coefficients[i] > 0);
+        // if (reactants[i] < 0.0) std::cout << "[t=" << t << "] reactants[i] == " << reactants[i] << std::endl;
+        // assert(1 + reactants[i] / Km >= 1.0);
+        // assert(std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i])) >= 1.0);
+        denom1 *= std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i]));
+    }
+    double denom2 = 1.0;
+    for (size_t i = 0; i < products.size(); ++i)
+    {
+        assert(reaction.product_coefficients[i] > 0);
+        // if (products[i] < 0.0) std::cout << "[t=" << t << "] products[i] == " << products[i] << std::endl;
+        denom2 *= std::pow(1 + products[i] / Km, static_cast<int>(reaction.product_coefficients[i]));
+    }
+    // assert(denom1 >= 1.0);
+    // assert(denom2 >= 1.0);
+    // assert(denom1 + denom2 - 1.0 > 0.0);
+    assert(denom1 + denom2 - 1.0 != 0.0);
+    return (forward - reverse) / (denom1 + denom2 - 1);
 
     // double forward = reaction.forward;
     // if (forward > 0.0)
@@ -50,7 +91,7 @@ double evaluate_reaction(
     //     }
     // }
 
-    return forward - reverse;
+    // return forward - reverse;
 }
 
 struct ODESystem
