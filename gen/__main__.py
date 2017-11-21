@@ -397,6 +397,42 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
 
             writer.writerow((reaction['id'], reactants, products, vfmax, vrmax, ';'.join(reaction.get('enzyme', ()))))
 
+def generate_ecocyc_plexes(ECOCYC_VERSION="21.1"):
+    log_.info('generate_ecocyc_fba(ECOCYC_VERSION="{}")'.format(ECOCYC_VERSION))
+
+    from . import ecocyc
+    ecocyc.load(path=INPUTS_PATH, version=ECOCYC_VERSION)
+
+    filename = os.path.join(OUTPUTS_PATH, 'plexes.csv')
+    with open(filename, 'w') as fout:
+        log_.info('output a file [{}]'.format(filename))
+        writer = csv.writer(fout, lineterminator='\n')
+        for feature in ecocyc.proteins():
+            if 'UNMODIFIED-FORM' in feature:
+                writer.writerow(('{}:1'.format(feature['UNIQUE-ID']), '{}:1'.format(feature['UNMODIFIED-FORM'])))
+            elif 'COMPONENTS' in feature:
+                writer.writerow(('{}:1'.format(feature['UNIQUE-ID']), ';'.join('{}:{:g}'.format(component, coef) for component, coef in feature['COMPONENTS'])))
+            else:
+                continue
+
+def generate_ecocyc_gene_product_map(ECOCYC_VERSION="21.1"):
+    log_.info('generate_ecocyc_gene_product_map(ECOCYC_VERSION="{}")'.format(ECOCYC_VERSION))
+
+    from . import ecocyc
+    ecocyc.load(path=INPUTS_PATH, version=ECOCYC_VERSION)
+
+    filename = os.path.join(OUTPUTS_PATH, 'gene_product_map.csv')
+    with open(filename, 'w') as fout:
+        log_.info('output a file [{}]'.format(filename))
+        writer = csv.writer(fout, lineterminator='\n')
+
+        for feature in ecocyc.proteins():
+            if 'UNMODIFIED-FORM' not in feature and 'COMPONENTS' not in feature and 'GENE' in feature:
+                writer.writerow((feature['GENE'], feature['UNIQUE-ID']))
+        for feature in ecocyc.rnas():
+            if 'UNMODIFIED-FORM' not in feature and 'GENE' in feature:
+                writer.writerow((feature['GENE'], feature['UNIQUE-ID']))
+
 
 if __name__ == "__main__":
     basicConfig(level=INFO)
@@ -415,3 +451,5 @@ if __name__ == "__main__":
         os.mkdir(OUTPUTS_PATH)
 
     generate_ecocyc_fba(showall=False)
+    generate_ecocyc_plexes()
+    generate_ecocyc_gene_product_map()

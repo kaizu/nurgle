@@ -7,6 +7,8 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY TRUE)
 set(OUTPUTS
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/metabolism.csv
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/compounds.csv
+    ${CMAKE_CURRENT_BINARY_DIR}/outputs/plexes.csv
+    ${CMAKE_CURRENT_BINARY_DIR}/outputs/gene_product_map.csv
     )
 
 find_package(PythonInterp ${PY_VERSION})

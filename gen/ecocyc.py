@@ -37,3 +37,10 @@ def find_reaction(entry_id):
 
 def find_enzrxn(entry_id):
     return find_entry(_ecocyc.ECOCYC_ENZRXNS, entry_id)
+
+def proteins():
+    return _ecocyc.ECOCYC_PROTEINS
+
+def rnas():
+    return _ecocyc.ECOCYC_RNAS
+
