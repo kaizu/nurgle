@@ -41,23 +41,26 @@ std::vector<ChemicalReaction>
             });
 }
 
+template <typename Tratelaw>
 struct EnzymaticChemicalReactionEvent: public Event<World>
 {
+    typedef Tratelaw ratelaw_type;
     typedef Event<World> base_type;
     typedef typename base_type::world_type world_type;
     typedef ChemicalReaction reaction_type;
-    typedef ode::ODESystem system_type;
-    typedef system_type::pool_type pool_type;
+    typedef ode::ODESystem<ratelaw_type> system_type;
+    typedef typename system_type::pool_type pool_type;
 
     double dt;
     double t;
     std::vector<reaction_type> reactions;
     system_type system;
+    bool dirty;
 
     EnzymaticChemicalReactionEvent(
         double const dt,
         std::vector<reaction_type> const& reactions)
-        : dt(dt), t(0.0), reactions(reactions), system()
+        : dt(dt), t(0.0), reactions(reactions), system(), dirty(true)
     {
         ;
     }
@@ -65,7 +68,7 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
     EnzymaticChemicalReactionEvent(
         double const dt,
         std::string const& filename)
-        : dt(dt), t(0.0), reactions(read_chemical_reactions(filename)), system()
+        : dt(dt), t(0.0), reactions(read_chemical_reactions(filename)), system(), dirty(true)
     {
         ;
     }
@@ -89,12 +92,15 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
 
     double draw_next_time(world_type& w) override
     {
-        if (system.reactions.size() == 0)
+        if (dirty)
         {
             system.generate_reactions(reactions, w.pool);
             assert(system.reactions.size() > 0);
-            synchronize(w);
+            // synchronize(w);
+            dirty = false;
         }
+        assert(w.t == t);
+        synchronize(w);
         return t + dt;
     }
 
@@ -105,22 +111,24 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
             return;
         }
 
-        _fire(w, w.t - t);
+        _fire(w, w.t);
         t = w.t;
     }
 
     std::vector<std::string> fire(world_type& w) override
     {
         LOG_DEBUG("EnzymaticChemicalReactionEvent => %1%", w.t);
-        return _fire(w, dt);
+        return _fire(w, t + dt);
     }
 
-    std::vector<std::string> _fire(world_type& w, double const dt_)
+    std::vector<std::string> _fire(world_type& w, double const next_time_)
     {
+        assert(next_time_ >= t);
+
         //XXX: workaround
-        if (dt_ < 1e-100)
+        if (next_time_ - t < 1e-100)
         {
-            t += dt_;
+            t = next_time_;
             return {};
         }
 
@@ -128,18 +136,18 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
         // system.dump_fluxes("fluxes.csv", w.pool, t);
         // system.dump_variables("compounds.csv", w.pool, t);
 
-        system.integrate(w.pool, t, dt_);
-        t += dt_;
+        system.integrate(w.pool, t, next_time_ - t);
+        t = next_time_;
         synchronize(w);
 
         return {};
     }
 };
 
-template <typename... Trest_>
+template <typename Tratelaw, typename... Trest_>
 std::unique_ptr<Event<World>> generate_enzymatic_chemical_reaction_event(Trest_ const& ... rest)
 {
-    return std::unique_ptr<Event<World>>(new EnzymaticChemicalReactionEvent(rest...));
+    return std::unique_ptr<Event<World>>(new EnzymaticChemicalReactionEvent<Tratelaw>(rest...));
 }
 
 }; // nurgle

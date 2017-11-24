@@ -19,83 +19,133 @@ namespace ode
 
 namespace odeint = boost::numeric::odeint;
 
-template <typename Treaction_>
-double evaluate_reaction(
-    std::vector<double> const& reactants,
-    std::vector<double> const& products,
-    std::vector<double> const& enzymes,
-    double const volume, double const t,
-    Treaction_ const& reaction)
+struct michaelis_menten
 {
-    // if (reaction.reverse == 0.0)
-    // {
-    //     if (reactants.size() != 0)
-    //         return utils::product(reactants.begin(), reactants.end(), reaction.forward, [](double const x){ return x / (x + 0.25); });
-    //     else
-    //         return utils::product(products.begin(), products.end(), reaction.forward, [](double const x){ return 1.0 / (x + 0.25); });
-    // }
-    // else if (reaction.forward == 0.0)
-    // {
-    //     if (products.size() != 0)
-    //        return utils::product(products.begin(), products.end(), -reaction.reverse, [](double const x){ return x / (x + 0.25); });
-    //     else
-    //        return utils::product(reactants.begin(), reactants.end(), -reaction.reverse, [](double const x){ return 1.0 / (x + 0.25); });
-    // }
-    // return 0.0;
-
-    // double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward, [](double const x){ return x / (x + 0.25); });
-    // double const reverse = utils::product(products.begin(), products.end(), reaction.reverse, [](double const x){ return x / (x + 0.25); });
-    double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward);
-    double const reverse = utils::product(products.begin(), products.end(), reaction.reverse);
-
-    double const Km = 1.0;
-    double denom1 = 1.0;
-    for (size_t i = 0; i < reactants.size(); ++i)
+    template <typename Treaction_>
+    double operator()(
+        std::vector<double> const& reactants,
+        std::vector<double> const& products,
+        std::vector<double> const& enzymes,
+        double const volume, double const t,
+        Treaction_ const& reaction)
     {
-        assert(reaction.reactant_coefficients[i] > 0);
-        // if (reactants[i] < 0.0) std::cout << "[t=" << t << "] reactants[i] == " << reactants[i] << std::endl;
-        // assert(1 + reactants[i] / Km >= 1.0);
-        // assert(std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i])) >= 1.0);
-        denom1 *= std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i]));
+        double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward);
+        double const reverse = utils::product(products.begin(), products.end(), reaction.reverse);
+    
+        double const Km = 1.0;
+        double denom1 = 1.0;
+        for (size_t i = 0; i < reactants.size(); ++i)
+        {
+            assert(reaction.reactant_coefficients[i] > 0);
+            denom1 *= std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i]));
+        }
+        double denom2 = 1.0;
+        for (size_t i = 0; i < products.size(); ++i)
+        {
+            assert(reaction.product_coefficients[i] > 0);
+            denom2 *= std::pow(1 + products[i] / Km, static_cast<int>(reaction.product_coefficients[i]));
+        }
+        assert(denom1 + denom2 - 1.0 != 0.0);
+        return (forward - reverse) / (denom1 + denom2 - 1);
     }
-    double denom2 = 1.0;
-    for (size_t i = 0; i < products.size(); ++i)
+};
+
+struct mass_action
+{
+    template <typename Treaction_>
+    double operator()(
+        std::vector<double> const& reactants,
+        std::vector<double> const& products,
+        std::vector<double> const& enzymes,
+        double const volume, double const t,
+        Treaction_ const& reaction)
     {
-        assert(reaction.product_coefficients[i] > 0);
-        // if (products[i] < 0.0) std::cout << "[t=" << t << "] products[i] == " << products[i] << std::endl;
-        denom2 *= std::pow(1 + products[i] / Km, static_cast<int>(reaction.product_coefficients[i]));
+        double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward);
+        double const reverse = utils::product(products.begin(), products.end(), reaction.reverse);
+        return forward - reverse;
     }
-    // assert(denom1 >= 1.0);
-    // assert(denom2 >= 1.0);
-    // assert(denom1 + denom2 - 1.0 > 0.0);
-    assert(denom1 + denom2 - 1.0 != 0.0);
-    return (forward - reverse) / (denom1 + denom2 - 1);
+};
 
-    // double forward = reaction.forward;
-    // if (forward > 0.0)
-    // {
-    //     for (size_t i = 0; i < reactants.size(); ++i)
-    //     {
-    //         assert(reaction.reactant_coefficients[i] > 0);
-    //         forward *= std::pow(reactants[i], reaction.reactant_coefficients[i]);
-    //     }
-    // }
+// template <typename Treaction_>
+// double evaluate_reaction(
+//     std::vector<double> const& reactants,
+//     std::vector<double> const& products,
+//     std::vector<double> const& enzymes,
+//     double const volume, double const t,
+//     Treaction_ const& reaction)
+// {
+//     // if (reaction.reverse == 0.0)
+//     // {
+//     //     if (reactants.size() != 0)
+//     //         return utils::product(reactants.begin(), reactants.end(), reaction.forward, [](double const x){ return x / (x + 0.25); });
+//     //     else
+//     //         return utils::product(products.begin(), products.end(), reaction.forward, [](double const x){ return 1.0 / (x + 0.25); });
+//     // }
+//     // else if (reaction.forward == 0.0)
+//     // {
+//     //     if (products.size() != 0)
+//     //        return utils::product(products.begin(), products.end(), -reaction.reverse, [](double const x){ return x / (x + 0.25); });
+//     //     else
+//     //        return utils::product(reactants.begin(), reactants.end(), -reaction.reverse, [](double const x){ return 1.0 / (x + 0.25); });
+//     // }
+//     // return 0.0;
+// 
+//     // double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward, [](double const x){ return x / (x + 0.25); });
+//     // double const reverse = utils::product(products.begin(), products.end(), reaction.reverse, [](double const x){ return x / (x + 0.25); });
+//     double const forward = utils::product(reactants.begin(), reactants.end(), reaction.forward);
+//     double const reverse = utils::product(products.begin(), products.end(), reaction.reverse);
+// 
+//     double const Km = 1.0;
+//     double denom1 = 1.0;
+//     for (size_t i = 0; i < reactants.size(); ++i)
+//     {
+//         assert(reaction.reactant_coefficients[i] > 0);
+//         // if (reactants[i] < 0.0) std::cout << "[t=" << t << "] reactants[i] == " << reactants[i] << std::endl;
+//         // assert(1 + reactants[i] / Km >= 1.0);
+//         // assert(std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i])) >= 1.0);
+//         denom1 *= std::pow(1 + reactants[i] / Km, static_cast<int>(reaction.reactant_coefficients[i]));
+//     }
+//     double denom2 = 1.0;
+//     for (size_t i = 0; i < products.size(); ++i)
+//     {
+//         assert(reaction.product_coefficients[i] > 0);
+//         // if (products[i] < 0.0) std::cout << "[t=" << t << "] products[i] == " << products[i] << std::endl;
+//         denom2 *= std::pow(1 + products[i] / Km, static_cast<int>(reaction.product_coefficients[i]));
+//     }
+//     // assert(denom1 >= 1.0);
+//     // assert(denom2 >= 1.0);
+//     // assert(denom1 + denom2 - 1.0 > 0.0);
+//     assert(denom1 + denom2 - 1.0 != 0.0);
+//     return (forward - reverse) / (denom1 + denom2 - 1);
+// 
+//     // double forward = reaction.forward;
+//     // if (forward > 0.0)
+//     // {
+//     //     for (size_t i = 0; i < reactants.size(); ++i)
+//     //     {
+//     //         assert(reaction.reactant_coefficients[i] > 0);
+//     //         forward *= std::pow(reactants[i], reaction.reactant_coefficients[i]);
+//     //     }
+//     // }
+// 
+//     // double reverse = reaction.reverse;
+//     // if (reverse > 0.0)
+//     // {
+//     //     for (size_t i = 0; i < products.size(); ++i)
+//     //     {
+//     //         assert(reaction.product_coefficients[i] > 0);
+//     //         reverse *= std::pow(products[i], reaction.product_coefficients[i]);
+//     //     }
+//     // }
+// 
+//     // return forward - reverse;
+// }
 
-    // double reverse = reaction.reverse;
-    // if (reverse > 0.0)
-    // {
-    //     for (size_t i = 0; i < products.size(); ++i)
-    //     {
-    //         assert(reaction.product_coefficients[i] > 0);
-    //         reverse *= std::pow(products[i], reaction.product_coefficients[i]);
-    //     }
-    // }
-
-    // return forward - reverse;
-}
-
+template <typename Tratelaw>
 struct ODESystem
 {
+    typedef Tratelaw ratelaw_type;
+
     typedef enum
         {
             RUNGE_KUTTA_CASH_KARP54 = 1,
@@ -184,7 +234,7 @@ struct ODESystem
                     cnt++;
                 }
 
-                double flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
+                double flux = ratelaw_type()(reactant_state, product_state, enzyme_state, volume, t, reaction);
 
                 cnt = 0;
                 for (auto const& idx : reaction.reactants)
@@ -278,10 +328,10 @@ struct ODESystem
                     cnt++;
                 }
 
-                double const flux0 = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
+                double const flux0 = ratelaw_type()(reactant_state, product_state, enzyme_state, volume, t, reaction);
 
                 {
-                    double const flux = evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t + ht, reaction);
+                    double const flux = ratelaw_type()(reactant_state, product_state, enzyme_state, volume, t + ht, reaction);
                     double const flux_deriv = (flux - flux0) / ht;
 
                     if (flux_deriv != 0.0)
@@ -314,7 +364,7 @@ struct ODESystem
                     double const h = std::max(SQRTETA * std::abs(reactant_state[j]), r0 * ewt);
                     state_container_type h_shift(reactant_state);
                     h_shift[j] += h;
-                    double const flux = evaluate_reaction(h_shift, product_state, enzyme_state, volume, t, reaction);
+                    double const flux = ratelaw_type()(h_shift, product_state, enzyme_state, volume, t, reaction);
                     double const flux_deriv = (flux - flux0) / h;
                     matrix_type::size_type const col = reaction.reactants[j];
 
@@ -345,7 +395,7 @@ struct ODESystem
                     double const h = std::max(SQRTETA * std::abs(product_state[j]), r0 * ewt);
                     state_container_type h_shift(product_state);
                     h_shift[j] += h;
-                    double const flux = evaluate_reaction(reactant_state, h_shift, enzyme_state, volume, t, reaction);
+                    double const flux = ratelaw_type()(reactant_state, h_shift, enzyme_state, volume, t, reaction);
                     double const flux_deriv = (flux - flux0) / h;
                     matrix_type::size_type const col = reaction.products[j];
 
@@ -376,7 +426,7 @@ struct ODESystem
                     double const h = std::max(SQRTETA * std::abs(enzyme_state[j]), r0 * ewt);
                     state_container_type h_shift(enzyme_state);
                     h_shift[j] += h;
-                    double const flux = evaluate_reaction(reactant_state, product_state, h_shift, volume, t, reaction);
+                    double const flux = ratelaw_type()(reactant_state, product_state, h_shift, volume, t, reaction);
                     double const flux_deriv = (flux - flux0) / h;
                     matrix_type::size_type const col = reaction.enzymes[j];
 
@@ -443,7 +493,7 @@ struct ODESystem
 
             r.reactants.reserve(r0.left.size());
             r.products.reserve(r0.right.size());
-            // r.enzymes.reserve(r0.enzymes.size());
+            r.enzymes.reserve(r0.enzymes.size());
 
             for (auto const& cmp : r0.left)
             {
@@ -477,20 +527,20 @@ struct ODESystem
                 r.product_coefficients.push_back(std::get<1>(cmp));
             }
 
-            // for (auto const& name : r0.enzymes)
-            // {
-            //     auto const& it = index_map.find(name);
-            //     if (it != index_map.end())
-            //     {
-            //         r.enzymes.push_back(index_map[name]);
-            //     }
-            //     else
-            //     {
-            //         size_t i = pool.update(name);
-            //         r.enzymes.push_back(i);
-            //         index_map[name] = i;
-            //     }
-            // }
+            for (auto const& name : r0.enzymes)
+            {
+                auto const& it = index_map.find(name);
+                if (it != index_map.end())
+                {
+                    r.enzymes.push_back(index_map[name]);
+                }
+                else
+                {
+                    size_t i = pool.update(name);
+                    r.enzymes.push_back(i);
+                    index_map[name] = i;
+                }
+            }
 
             reactions.push_back(r);
         }
@@ -508,6 +558,18 @@ struct ODESystem
 
     void integrate(pool_type& pool, double const t, double const dt)
     {
+        if (pool.size() != state_init.size())
+        {
+            if (pool.size() > state_init.size())
+            {
+                state_init.resize(pool.size(), 0.0);
+            }
+            else
+            {
+                throw std::runtime_error("The size of the pool given is smaller than expected.");
+            }
+        }
+
         std::vector<double> timelog;
         std::vector<state_type> statelog;
 
@@ -616,7 +678,7 @@ struct ODESystem
             cnt++;
         }
 
-        return evaluate_reaction(reactant_state, product_state, enzyme_state, volume, t, reaction);
+        return ratelaw_type()(reactant_state, product_state, enzyme_state, volume, t, reaction);
     }
 
     void dump_fluxes(std::ostream& out, double const t = 0.0) const

@@ -262,7 +262,7 @@ struct EventScheduler
 
     bool step(world_type& w, double const upto)
     {
-        if (gett(w) >= upto)
+        if (gett(w) > upto)
         {
             return false;
         }
