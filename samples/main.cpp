@@ -43,15 +43,17 @@ void timecourse(
     ofs << std::endl;
 }
 
-std::vector<nurgle::ChemicalReaction>
-    read_gene_expressions(std::string const filename)
+std::unique_ptr<nurgle::Event<nurgle::World>> generate_protein_event(double const dt, std::string const& pathto, std::string const& sep)
 {
     using namespace nurgle;
-    typedef utils::csv<std::string, std::string> csv_type;
-    typedef ChemicalReaction ret_type;
-    return csv_type::read<ret_type>(
-        filename,
-        [](csv_type::row_type&& x) {
+    typedef EnzymaticChemicalReactionEvent<ode::mass_action> event_type;
+
+    auto event = std::make_unique<event_type>(dt);
+
+    {
+        typedef utils::csv<std::string, std::string> csv_type;
+        typedef ChemicalReaction ret_type;
+        csv_type::for_each(pathto + sep + "gene_product_map.csv", [&event](csv_type::row_type&& x) {
             ret_type reaction;
             reaction.name = std::get<0>(x);
             reaction.left = decltype(reaction.left)(0);
@@ -59,8 +61,37 @@ std::vector<nurgle::ChemicalReaction>
             reaction.forward = 1.0;  // synthesis
             reaction.reverse = 1.0;  // degradation
             reaction.enzymes = decltype(reaction.enzymes)(0);
-            return reaction;
+            event->add_reaction(reaction);
             });
+    }
+    {
+        typedef utils::csv<std::string, std::string> csv_type;
+        typedef ChemicalReaction ret_type;
+        csv_type::for_each(pathto + sep + "plexes.csv", [&event](csv_type::row_type&& x) {
+                {
+                    ret_type reaction;
+                    reaction.name = std::get<0>(x);
+                    reaction.left = utils::_csv<std::tuple<std::string, double>, ':'>::read(std::istringstream(std::get<1>(x)), ';');
+                    reaction.right = decltype(reaction.right)(1, std::make_tuple(std::get<0>(x), 1.0));
+                    reaction.forward = 1.0;  // binding
+                    reaction.reverse = 0.0;  // unbinding
+                    reaction.enzymes = decltype(reaction.enzymes)(0);
+                    event->add_reaction(reaction);
+                }
+                {
+                    ret_type reaction;
+                    reaction.name = std::get<0>(x);
+                    reaction.left = decltype(reaction.left)(1, std::make_tuple(std::get<0>(x), 1.0));
+                    reaction.right = decltype(reaction.right)(0);
+                    reaction.forward = 1.0;  // degradation
+                    reaction.reverse = 0.0;
+                    reaction.enzymes = decltype(reaction.enzymes)(0);
+                    event->add_reaction(reaction);
+                }
+            });
+    }
+
+    return std::unique_ptr<Event<World>>(event.release());
 }
 
 int main(int argc, char* argv[])
@@ -90,8 +121,10 @@ int main(int argc, char* argv[])
     auto const& system = scheduler.as<EnzymaticChemicalReactionEvent<ode::michaelis_menten>>(event_id1).system;
 
     auto const event_id2 = scheduler.insert(
-        generate_enzymatic_chemical_reaction_event<ode::mass_action>(
-            dt, read_gene_expressions(pathto + sep + "gene_product_map.csv")));
+        generate_protein_event(dt, pathto, sep));
+    // auto const event_id2 = scheduler.insert(
+    //     generate_enzymatic_chemical_reaction_event<ode::mass_action>(
+    //         dt, read_gene_expressions(pathto + sep + "gene_product_map.csv")));
 
     scheduler.insert(generate_fixed_interval_callback_event<World>(
         "TimerEvent", dt, [&](World& w) -> std::vector<EventScheduler<World>::token_type> {
@@ -99,6 +132,7 @@ int main(int argc, char* argv[])
             std::cout << "The current time is " << w.t << "." << std::endl;
             std::cout << target << " = " << w.pool.get(target) - 1.0 << std::endl;
             std::cout << "EG10048-MONOMER = " << w.pool.get("EG10048-MONOMER") << std::endl;
+            std::cout << "ABC-56-CPLX = " << w.pool.get("ABC-56-CPLX") << std::endl;
             return {};
             }), -1);
 

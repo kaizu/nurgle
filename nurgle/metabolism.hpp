@@ -58,6 +58,13 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
     bool dirty;
 
     EnzymaticChemicalReactionEvent(
+        double const dt)
+        : dt(dt), t(0.0), reactions(), system(), dirty(false)
+    {
+        ;
+    }
+
+    EnzymaticChemicalReactionEvent(
         double const dt,
         std::vector<reaction_type> const& reactions)
         : dt(dt), t(0.0), reactions(reactions), system(), dirty(true)
@@ -76,6 +83,12 @@ struct EnzymaticChemicalReactionEvent: public Event<World>
     virtual ~EnzymaticChemicalReactionEvent()
     {
         ;
+    }
+
+    void add_reaction(reaction_type const& reaction)
+    {
+        reactions.push_back(reaction);
+        dirty = true;
     }
 
     void synchronize(world_type& w)

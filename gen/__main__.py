@@ -218,86 +218,86 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
         else:
             log_.debug('Reaction [{}] has no source'.format(reaction['id']))
 
-    fluxes = check_reversibility(data)
-    reactions = data['reactions']
-    for flux in fluxes:
-        if len(flux) < 2:
-            continue
-        elif all(reactions[idx]['direction'] in (Direction.REVERSIBLE, Direction.DAMMED) for idx, coef in flux):
-            continue
-        # elif all(abs(reactions[idx]['flux']) <= ABS_TOL for idx, coef in flux):
-        #     continue
+    # fluxes = check_reversibility(data)
+    # reactions = data['reactions']
+    # for flux in fluxes:
+    #     if len(flux) < 2:
+    #         continue
+    #     elif all(reactions[idx]['direction'] in (Direction.REVERSIBLE, Direction.DAMMED) for idx, coef in flux):
+    #         continue
+    #     # elif all(abs(reactions[idx]['flux']) <= ABS_TOL for idx, coef in flux):
+    #     #     continue
 
-        if all(reactions[idx]['direction'] in (Direction.REVERSIBLE, Direction.DAMMED) for idx, coef in flux):
-            for idx, coef in flux:
-                if reactions[idx]['direction'] not in (Direction.REVERSIBLE, Direction.DAMMED):
-                    name = reactionss[idx]['id']
-                    log_.warn('[{}] could be reversible.'.format(name))
-                    reactions[idx]['direction'] = Direction.REVERSIBLE
-        elif (any((reactions[idx]['direction'] is Direction.FORWARD and coef > 0)
-                  or (reactions[idx]['direction'] is Direction.REVERSE and coef < 0) 
-                  for idx, coef in flux)
-              and any((reactions[idx]['direction'] is Direction.FORWARD and coef < 0)
-                  or (reactions[idx]['direction'] is Direction.REVERSE and coef > 0) 
-                  for idx, coef in flux)):
-            for idx, coef in flux:
-                name = reactions[idx]['id']
-                log_.warn('[{}] could be reversible.'.format(name))
-                reactions[idx]['direction'] = Direction.REVERSIBLE
+    #     if all(reactions[idx]['direction'] in (Direction.REVERSIBLE, Direction.DAMMED) for idx, coef in flux):
+    #         for idx, coef in flux:
+    #             if reactions[idx]['direction'] not in (Direction.REVERSIBLE, Direction.DAMMED):
+    #                 name = reactionss[idx]['id']
+    #                 log_.warn('[{}] could be reversible.'.format(name))
+    #                 reactions[idx]['direction'] = Direction.REVERSIBLE
+    #     elif (any((reactions[idx]['direction'] is Direction.FORWARD and coef > 0)
+    #               or (reactions[idx]['direction'] is Direction.REVERSE and coef < 0) 
+    #               for idx, coef in flux)
+    #           and any((reactions[idx]['direction'] is Direction.FORWARD and coef < 0)
+    #               or (reactions[idx]['direction'] is Direction.REVERSE and coef > 0) 
+    #               for idx, coef in flux)):
+    #         for idx, coef in flux:
+    #             name = reactions[idx]['id']
+    #             log_.warn('[{}] could be reversible.'.format(name))
+    #             reactions[idx]['direction'] = Direction.REVERSIBLE
 
-        # tot = sum(reactions[idx]['flux'] * coef for idx, coef in flux)
-        # forward = [(idx, coef) for idx, coef in flux
-        #            if (reactions[idx]['direction'] is Direction.FORWARD and coef > 0) or (reactions[idx]['direction'] is Direction.REVERSE and coef < 0)]
-        # reverse = [(idx, coef) for idx, coef in flux
-        #            if (reactions[idx]['direction'] is Direction.FORWARD and coef < 0) or (reactions[idx]['direction'] is Direction.REVERSE and coef > 0)]
-        # reversible = [(idx, coef) for idx, coef in flux if reactions[idx]['direction'] == Direction.REVERSIBLE]
+    #     # tot = sum(reactions[idx]['flux'] * coef for idx, coef in flux)
+    #     # forward = [(idx, coef) for idx, coef in flux
+    #     #            if (reactions[idx]['direction'] is Direction.FORWARD and coef > 0) or (reactions[idx]['direction'] is Direction.REVERSE and coef < 0)]
+    #     # reverse = [(idx, coef) for idx, coef in flux
+    #     #            if (reactions[idx]['direction'] is Direction.FORWARD and coef < 0) or (reactions[idx]['direction'] is Direction.REVERSE and coef > 0)]
+    #     # reversible = [(idx, coef) for idx, coef in flux if reactions[idx]['direction'] == Direction.REVERSIBLE]
 
-        # if abs(tot) <= ABS_TOL:
-        #     V = 1.0  # default velocity
-        #     if len(forward) != 0 and len(reverse) != 0:
-        #         forward.extend((idx, coef) for idx, coef in reversible if coef > 0)
-        #         reverse.extend((idx, coef) for idx, coef in reversible if coef < 0)
-        #     elif len(reversible) != 0 and (len(forward) != 0 or len(reverse) != 0):
-        #         if len(forward) == 0:
-        #             forward = reversible
-        #         else:
-        #             reverse = reversible
-        #     else:
-        #         continue  # do nothing
-        #     for idx, coef in forward:
-        #         reactions[idx]['flux'] = V / len(forward) * (+1 if coef > 0 else -1)
-        #     for idx, coef in reverse:
-        #         reactions[idx]['flux'] = V / len(reverse) * (+1 if coef < 0 else -1)
-        # elif tot > 0.0:
-        #     if len(forward) == 0:
-        #         assert len(reversible) != 0
-        #         forward = reversible
-        #     else:
-        #         forward.extend((idx, coef) for idx, coef in reversible if coef > 0)
-        #         reverse.extend((idx, coef) for idx, coef in reversible if coef < 0)
-        #     if len(reverse) == 0:
-        #         for idx, coef in forward:
-        #             reactions[idx]['flux'] = tot / len(forward) * (+1 if coef > 0 else -1)
-        #     else:
-        #         for idx, coef in forward:
-        #             reactions[idx]['flux'] = 2 * tot / len(forward) * (+1 if coef > 0 else -1)
-        #         for idx, coef in reverse:
-        #             reactions[idx]['flux'] = tot / len(reverse) * (+1 if coef < 0 else -1)
-        # else:  # tot < 0.0
-        #     if len(reverse) == 0:
-        #         assert len(reversible) != 0
-        #         reverse = reversible
-        #     else:
-        #         forward.extend((idx, coef) for idx, coef in reversible if coef > 0)
-        #         reverse.extend((idx, coef) for idx, coef in reversible if coef < 0)
-        #     if len(forward) == 0:
-        #         for idx, coef in reverse:
-        #             reactions[idx]['flux'] = -tot / len(forward) * (+1 if coef < 0 else -1)
-        #     else:
-        #         for idx, coef in forward:
-        #             reactions[idx]['flux'] = -tot / len(forward) * (+1 if coef > 0 else -1)
-        #         for idx, coef in reverse:
-        #             reactions[idx]['flux'] = -2 * tot / len(reverse) * (+1 if coef < 0 else -1)
+    #     # if abs(tot) <= ABS_TOL:
+    #     #     V = 1.0  # default velocity
+    #     #     if len(forward) != 0 and len(reverse) != 0:
+    #     #         forward.extend((idx, coef) for idx, coef in reversible if coef > 0)
+    #     #         reverse.extend((idx, coef) for idx, coef in reversible if coef < 0)
+    #     #     elif len(reversible) != 0 and (len(forward) != 0 or len(reverse) != 0):
+    #     #         if len(forward) == 0:
+    #     #             forward = reversible
+    #     #         else:
+    #     #             reverse = reversible
+    #     #     else:
+    #     #         continue  # do nothing
+    #     #     for idx, coef in forward:
+    #     #         reactions[idx]['flux'] = V / len(forward) * (+1 if coef > 0 else -1)
+    #     #     for idx, coef in reverse:
+    #     #         reactions[idx]['flux'] = V / len(reverse) * (+1 if coef < 0 else -1)
+    #     # elif tot > 0.0:
+    #     #     if len(forward) == 0:
+    #     #         assert len(reversible) != 0
+    #     #         forward = reversible
+    #     #     else:
+    #     #         forward.extend((idx, coef) for idx, coef in reversible if coef > 0)
+    #     #         reverse.extend((idx, coef) for idx, coef in reversible if coef < 0)
+    #     #     if len(reverse) == 0:
+    #     #         for idx, coef in forward:
+    #     #             reactions[idx]['flux'] = tot / len(forward) * (+1 if coef > 0 else -1)
+    #     #     else:
+    #     #         for idx, coef in forward:
+    #     #             reactions[idx]['flux'] = 2 * tot / len(forward) * (+1 if coef > 0 else -1)
+    #     #         for idx, coef in reverse:
+    #     #             reactions[idx]['flux'] = tot / len(reverse) * (+1 if coef < 0 else -1)
+    #     # else:  # tot < 0.0
+    #     #     if len(reverse) == 0:
+    #     #         assert len(reversible) != 0
+    #     #         reverse = reversible
+    #     #     else:
+    #     #         forward.extend((idx, coef) for idx, coef in reversible if coef > 0)
+    #     #         reverse.extend((idx, coef) for idx, coef in reversible if coef < 0)
+    #     #     if len(forward) == 0:
+    #     #         for idx, coef in reverse:
+    #     #             reactions[idx]['flux'] = -tot / len(forward) * (+1 if coef < 0 else -1)
+    #     #     else:
+    #     #         for idx, coef in forward:
+    #     #             reactions[idx]['flux'] = -tot / len(forward) * (+1 if coef > 0 else -1)
+    #     #         for idx, coef in reverse:
+    #     #             reactions[idx]['flux'] = -2 * tot / len(reverse) * (+1 if coef < 0 else -1)
 
     compounds = []
     for reaction in data['reactions']:
@@ -362,8 +362,8 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
         writer = csv.writer(fout, lineterminator='\n')
         for reaction in data['reactions']:
             flux = reaction['flux']
-            # if not showall and abs(flux) <= ABS_TOL:
-            if not showall and (abs(flux) <= ABS_TOL and reaction['direction'] is not Direction.REVERSIBLE):
+            if not showall and abs(flux) <= ABS_TOL:
+            # if not showall and (abs(flux) <= ABS_TOL and reaction['direction'] is not Direction.REVERSIBLE):
                 continue
             assert ';' not in reaction['id'] and ':' not in reaction['id']
             assert all(';' not in name and ':' not in name for name in reaction['metabolites'])
@@ -393,7 +393,8 @@ def generate_ecocyc_fba(ECOCYC_VERSION="21.1", showall=False):
             reactants = ';'.join('{}:{}'.format(name, -coef) for name, coef in reaction['metabolites'].items() if coef < 0)
             products = ';'.join('{}:{}'.format(name, coef) for name, coef in reaction['metabolites'].items() if coef > 0)
 
-            vfmax, vrmax = calc_params(flux, reaction['metabolites'], reaction['direction'])
+            # vfmax, vrmax = calc_params(flux, reaction['metabolites'], reaction['direction'])
+            vfmax, vrmax = calc_params(flux, reaction['metabolites'], Direction.REVERSIBLE)
 
             writer.writerow((reaction['id'], reactants, products, vfmax, vrmax, ';'.join(reaction.get('enzyme', ()))))
 
@@ -409,9 +410,9 @@ def generate_ecocyc_plexes(ECOCYC_VERSION="21.1"):
         writer = csv.writer(fout, lineterminator='\n')
         for feature in ecocyc.proteins():
             if 'UNMODIFIED-FORM' in feature:
-                writer.writerow(('{}:1'.format(feature['UNIQUE-ID']), '{}:1'.format(feature['UNMODIFIED-FORM'])))
+                writer.writerow((feature['UNIQUE-ID'], '{}:1'.format(feature['UNMODIFIED-FORM'])))
             elif 'COMPONENTS' in feature:
-                writer.writerow(('{}:1'.format(feature['UNIQUE-ID']), ';'.join('{}:{:g}'.format(component, coef) for component, coef in feature['COMPONENTS'])))
+                writer.writerow((feature['UNIQUE-ID'], ';'.join('{}:{:g}'.format(component, coef) for component, coef in feature['COMPONENTS'])))
             else:
                 continue
 
