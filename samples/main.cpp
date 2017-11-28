@@ -43,6 +43,13 @@ void timecourse(
     ofs << std::endl;
 }
 
+template <typename T>
+void sort_unique_erase(T& cont)
+{
+    std::sort(cont.begin(), cont.end());
+    cont.erase(std::unique(cont.begin(), cont.end()), cont.end());
+}
+
 std::unique_ptr<nurgle::Event<nurgle::World>> generate_protein_event(double const dt, std::string const& pathto, std::string const& sep)
 {
     using namespace nurgle;
@@ -51,18 +58,53 @@ std::unique_ptr<nurgle::Event<nurgle::World>> generate_protein_event(double cons
     auto event = std::make_unique<event_type>(dt);
 
     {
+        std::vector<std::string> transunits, monomers;
+
         typedef utils::csv<std::string, std::string> csv_type;
         typedef ChemicalReaction ret_type;
-        csv_type::for_each(pathto + sep + "gene_product_map.csv", [&event](csv_type::row_type&& x) {
+        csv_type::for_each(pathto + sep + "transunits.csv", [&event, &transunits, &monomers](csv_type::row_type&& x) {
+            transunits.push_back(std::get<0>(x));
+            monomers.push_back(std::get<1>(x));
+
             ret_type reaction;
             reaction.name = std::get<0>(x);
-            reaction.left = decltype(reaction.left)(0);
-            reaction.right = decltype(reaction.right)(1, std::make_tuple(std::get<1>(x), 1.0));
-            reaction.forward = 1.0;  // synthesis
-            reaction.reverse = 1.0;  // degradation
+            reaction.left = decltype(reaction.left)(1, std::make_tuple(std::get<0>(x), 1.0));
+            reaction.right = decltype(reaction.right){
+                std::make_tuple(std::get<0>(x), 1.0), 
+                std::make_tuple(std::get<1>(x), 1.0)
+                };
+            reaction.forward = 1.0;  // translation
+            reaction.reverse = 0.0;
             reaction.enzymes = decltype(reaction.enzymes)(0);
             event->add_reaction(reaction);
             });
+
+        sort_unique_erase(transunits);
+        sort_unique_erase(monomers);
+
+        for (auto const& transunit : transunits)
+        {
+            ret_type reaction;
+            reaction.name = transunit;
+            reaction.left = decltype(reaction.left)(0);
+            reaction.right = decltype(reaction.right)(1, std::make_tuple(transunit, 1.0));
+            reaction.forward = 1.0;  // transcription
+            reaction.reverse = 1.0;  // degradation
+            reaction.enzymes = decltype(reaction.enzymes)(0);
+            event->add_reaction(reaction);
+        }
+
+        for (auto const& monomer : monomers)
+        {
+            ret_type reaction;
+            reaction.name = monomer;
+            reaction.left = decltype(reaction.left)(1, std::make_tuple(monomer, 1.0));
+            reaction.right = decltype(reaction.right)(0);
+            reaction.forward = 1.0;  // degradation
+            reaction.reverse = 0.0;
+            reaction.enzymes = decltype(reaction.enzymes)(0);
+            event->add_reaction(reaction);
+        }
     }
     {
         typedef utils::csv<std::string, std::string> csv_type;
@@ -133,6 +175,7 @@ int main(int argc, char* argv[])
             std::cout << target << " = " << w.pool.get(target) - 1.0 << std::endl;
             std::cout << "EG10048-MONOMER = " << w.pool.get("EG10048-MONOMER") << std::endl;
             std::cout << "ABC-56-CPLX = " << w.pool.get("ABC-56-CPLX") << std::endl;
+            std::cout << "TU00362 = " << w.pool.get("TU00362") << std::endl;
             return {};
             }), -1);
 

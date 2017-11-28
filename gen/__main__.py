@@ -434,6 +434,31 @@ def generate_ecocyc_gene_product_map(ECOCYC_VERSION="21.1"):
             if 'UNMODIFIED-FORM' not in feature and 'GENE' in feature:
                 writer.writerow((feature['GENE'], feature['UNIQUE-ID']))
 
+def generate_ecocyc_transunits(ECOCYC_VERSION="21.1"):
+    log_.info('generate_ecocyc_transunits(ECOCYC_VERSION="{}")'.format(ECOCYC_VERSION))
+
+    from . import ecocyc
+    ecocyc.load(path=INPUTS_PATH, version=ECOCYC_VERSION)
+
+    transunits = defaultdict(list)
+    for feature in ecocyc.transunits():
+        if 'COMPONENTS' in feature:
+            for component in feature['COMPONENTS']:
+                transunits[component].append(feature['UNIQUE-ID'])
+
+    filename = os.path.join(OUTPUTS_PATH, 'transunits.csv')
+    with open(filename, 'w') as fout:
+        log_.info('output a file [{}]'.format(filename))
+        writer = csv.writer(fout, lineterminator='\n')
+
+        for feature in ecocyc.proteins():
+            if 'UNMODIFIED-FORM' not in feature and 'COMPONENTS' not in feature and 'GENE' in feature:
+                for transunit in transunits[feature['GENE']]:
+                    writer.writerow((transunit, feature['UNIQUE-ID']))
+        # for feature in ecocyc.rnas():
+        #     if 'UNMODIFIED-FORM' not in feature and 'GENE' in feature:
+        #         writer.writerow((feature['GENE'], feature['UNIQUE-ID']))
+
 
 if __name__ == "__main__":
     basicConfig(level=INFO)
@@ -454,3 +479,4 @@ if __name__ == "__main__":
     generate_ecocyc_fba(showall=False)
     generate_ecocyc_plexes()
     generate_ecocyc_gene_product_map()
+    generate_ecocyc_transunits()

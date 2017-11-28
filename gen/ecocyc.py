@@ -17,7 +17,13 @@ __version__ = '0.1'
 __author__ = 'Kazunari Kaizu'
 
 
-load = _ecocyc.load
+ECOCYC_LOADED = False
+
+def load(*args, **kwargs):
+    global ECOCYC_LOADED
+    if not ECOCYC_LOADED:
+        _ecocyc.load(*args, **kwargs)
+        ECOCYC_LOADED = True
 
 def find_entry(root, entry_id):
     entries = []
@@ -44,3 +50,5 @@ def proteins():
 def rnas():
     return _ecocyc.ECOCYC_RNAS
 
+def transunits():
+    return _ecocyc.ECOCYC_TRANSUNITS

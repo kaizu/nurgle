@@ -9,6 +9,7 @@ set(OUTPUTS
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/compounds.csv
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/plexes.csv
     ${CMAKE_CURRENT_BINARY_DIR}/outputs/gene_product_map.csv
+    ${CMAKE_CURRENT_BINARY_DIR}/outputs/transunits.csv
     )
 
 find_package(PythonInterp ${PY_VERSION})
