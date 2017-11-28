@@ -468,6 +468,54 @@ def generate_ecocyc_transunits(ECOCYC_VERSION="21.1"):
         #     if 'UNMODIFIED-FORM' not in feature and 'GENE' in feature:
         #         writer.writerow((feature['GENE'], feature['UNIQUE-ID']))
 
+def generate_ecocyc_bindrxns(ECOCYC_VERSION="21.1"):
+    log_.info('generate_ecocyc_bindrxns(ECOCYC_VERSION="{}")'.format(ECOCYC_VERSION))
+
+    from . import ecocyc
+    ecocyc.load(path=INPUTS_PATH, version=ECOCYC_VERSION)
+
+    filename = os.path.join(OUTPUTS_PATH, 'bindrxns.csv')
+    with open(filename, 'w') as fout:
+        log_.info('output a file [{}]'.format(filename))
+        writer = csv.writer(fout, lineterminator='\n')
+
+        for feature in ecocyc.regulations():
+            if 'ASSOCIATED-BINDING-SITE' not in feature or 'REGULATOR' not in feature:
+                continue
+            dnabindsite = ecocyc.find_dnabindsite(feature['ASSOCIATED-BINDING-SITE'])
+            if dnabindsite is None or 'ABS-CENTER-POS' not in dnabindsite:
+                continue
+
+            assert len(feature['REGULATOR']) == 1
+            assert 'TYPES' in feature
+            assert len(feature['TYPES']) == 1
+            assert feature['TYPES'][0] == 'Transcription-Factor-Binding'
+
+            pos = dnabindsite['ABS-CENTER-POS']
+            if pos.is_integer():
+                left = right = int(pos)
+            else:
+                left, right = int(pos), int(pos) + 1
+            
+            if 'MODE' in feature:
+                if feature['MODE'] == '+':
+                    mode = +1
+                else:
+                    assert feature['MODE'] == '-'
+                    mode = -1
+            else:
+                mode = 0
+
+            targets = []
+            if 'REGULATED-ENTITY' in feature:
+                promoter = ecocyc.find_promoter(feature['REGULATED-ENTITY'])
+                if promoter is not None and 'COMPONENT-OF' in promoter:
+                    for parent in promoter['COMPONENT-OF']:
+                        if ecocyc.find_transunit(parent) is not None:
+                            targets.append(parent)
+
+            writer.writerow((feature['ASSOCIATED-BINDING-SITE'], left, right, feature['REGULATOR'][0], mode, ';'.join(targets)))
+
 
 if __name__ == "__main__":
     basicConfig(level=INFO)
@@ -489,3 +537,4 @@ if __name__ == "__main__":
     generate_ecocyc_plexes()
     generate_ecocyc_gene_product_map()
     generate_ecocyc_transunits()
+    generate_ecocyc_bindrxns()

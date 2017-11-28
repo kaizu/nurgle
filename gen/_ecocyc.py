@@ -497,7 +497,7 @@ def load_promoters():
             value['MINUS-35-RIGHT'] = int(value['MINUS-35-RIGHT'])
 
         # set_value(entry, 'REGULATED-BY', value)
-        # set_value(entry, 'COMPONENT-OF', value)
+        set_value(entry, 'COMPONENT-OF', value)
 
         set_value(entry, 'BINDS-SIGMA-FACTOR', value)  #XXX: This is deprecated in the latest version
 

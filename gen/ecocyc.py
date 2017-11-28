@@ -44,6 +44,15 @@ def find_reaction(entry_id):
 def find_enzrxn(entry_id):
     return find_entry(_ecocyc.ECOCYC_ENZRXNS, entry_id)
 
+def find_dnabindsite(entry_id):
+    return find_entry(_ecocyc.ECOCYC_DNABINDSITES, entry_id)
+
+def find_promoter(entry_id):
+    return find_entry(_ecocyc.ECOCYC_PROMOTERS, entry_id)
+
+def find_transunit(entry_id):
+    return find_entry(_ecocyc.ECOCYC_TRANSUNITS, entry_id)
+
 def proteins():
     return _ecocyc.ECOCYC_PROTEINS
 
@@ -53,6 +62,9 @@ def rnas():
 def transunits():
     return _ecocyc.ECOCYC_TRANSUNITS
 
+def regulations():
+    return _ecocyc.ECOCYC_REGULATIONS
+
 class EcocycKind(Enum):
     UNKNOWN = auto()
     REACTION = auto()
@@ -60,6 +72,7 @@ class EcocycKind(Enum):
     PROTEIN = auto()
     RNA = auto()
     TRANSUNIT = auto()
+    REGULATION = auto()
 
 def kind(entry_id):
     for root, res in (
@@ -68,6 +81,7 @@ def kind(entry_id):
         (_ecocyc.ECOCYC_PROTEINS, EcocycKind.PROTEIN),
         (_ecocyc.ECOCYC_RNAS, EcocycKind.RNA),
         (_ecocyc.ECOCYC_TRANSUNITS, EcocycKind.TRANSUNIT),
+        (_ecocyc.ECOCYC_REGULATIONS, EcocycKind.REGULATION),
         ):
         if find_entry(root, entry_id) is not None:
             return res
