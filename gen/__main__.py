@@ -410,9 +410,18 @@ def generate_ecocyc_plexes(ECOCYC_VERSION="21.1"):
         writer = csv.writer(fout, lineterminator='\n')
         for feature in ecocyc.proteins():
             if 'UNMODIFIED-FORM' in feature:
-                writer.writerow((feature['UNIQUE-ID'], '{}:1'.format(feature['UNMODIFIED-FORM'])))
+                if ecocyc.kind(feature['UNMODIFIED-FORM']) is ecocyc.EcocycKind.PROTEIN:
+                    writer.writerow((feature['UNIQUE-ID'], '{}:1'.format(feature['UNMODIFIED-FORM'])))
+                else:
+                    writer.writerow(('# {}'.format(feature['UNIQUE-ID']), '{}:1'.format(feature['UNMODIFIED-FORM'])))  # just for debugging
             elif 'COMPONENTS' in feature:
-                writer.writerow((feature['UNIQUE-ID'], ';'.join('{}:{:g}'.format(component, coef) for component, coef in feature['COMPONENTS'])))
+                components = ['{}:{:g}'.format(component, coef) for component, coef in feature['COMPONENTS']
+                              if ecocyc.kind(component) is ecocyc.EcocycKind.PROTEIN]
+                _components = ['{}:{:g}'.format(component, coef) for component, coef in feature['COMPONENTS']]
+                if len(components) > 0:
+                    writer.writerow((feature['UNIQUE-ID'], ';'.join(components)))
+                if len(components) != len(_components):
+                    writer.writerow(('# {}'.format(feature['UNIQUE-ID']), ';'.join(_components)))  # just for debugging
             else:
                 continue
 
